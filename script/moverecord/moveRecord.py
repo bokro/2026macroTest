@@ -17,6 +17,12 @@ import getpass
 import webbrowser
 import csv
 from datetime import datetime
+from pathlib import Path
+
+# 프로젝트 루트 기준 경로
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 # recorder version for metadata
 RECORDER_VERSION = '1.0'
@@ -43,7 +49,7 @@ except ImportError:
 try:
     import cv2
     import numpy as np
-    from imgCheck import capture_window, match_templates, find_windows_for_name
+    from script.imgcheck.imgCheck import capture_window, match_templates, find_windows_for_name
 except ImportError:
     print("경고: imgCheck 기능을 사용하려면 opencv-python, numpy가 필요합니다.")
     print("설치: pip install opencv-python numpy")
@@ -415,12 +421,12 @@ def show_exit_message():
 
 def _write_test_log(log_data):
     """Write playback/test results to HTML and CSV, and open the HTML."""
-    log_dir = os.path.join(os.getcwd(), 'logs')
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir = BASE_DIR / 'logs'
+    log_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     base = f'test_log_{ts}'
-    html_path = os.path.join(log_dir, base + '.html')
-    csv_path = os.path.join(log_dir, base + '.csv')
+    html_path = log_dir / f'{base}.html'
+    csv_path = log_dir / f'{base}.csv'
 
     started_at = log_data.get('started_at')
     ended_at = log_data.get('ended_at')
@@ -2273,7 +2279,7 @@ def _perform_imgcheck(img_path):
     try:
         import cv2
         import numpy as np
-        from imgCheck import capture_window, match_templates, find_windows_for_name
+        from script.imgcheck.imgCheck import capture_window, match_templates, find_windows_for_name
     except ImportError:
         msg = 'imgcheck: opencv 또는 imgCheck 모듈이 없습니다.'
         result['message'] = msg
@@ -2306,14 +2312,14 @@ def _perform_imgcheck(img_path):
         print(msg)
         return result
 
-    temp_dir = os.path.join(os.getcwd(), 'temp_imgcheck')
-    debug_dir = os.path.join(os.getcwd(), 'debugimg')
-    os.makedirs(temp_dir, exist_ok=True)
-    os.makedirs(debug_dir, exist_ok=True)
+    temp_dir = BASE_DIR / 'temp_imgcheck'
+    debug_dir = BASE_DIR / 'debugimg'
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    debug_dir.mkdir(parents=True, exist_ok=True)
     saved_path = None
     try:
         import shutil
-        temp_img = os.path.join(temp_dir, os.path.basename(img_path))
+        temp_img = temp_dir / os.path.basename(img_path)
         shutil.copy(img_path, temp_img)
         ok, info = match_templates(screen, temp_dir, threshold=0.8)
         ts = time.strftime('%Y%m%d_%H%M%S')
@@ -2331,10 +2337,10 @@ def _perform_imgcheck(img_path):
                 top_left = loc
                 bottom_right = (top_left[0] + w_t, top_left[1] + h_t)
                 cv2.rectangle(vis, top_left, bottom_right, (0, 255, 0), 2)
-            vis_fname = os.path.join(debug_dir, f'imgcheck_pass_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png')
-            cv2.imwrite(vis_fname, vis)
-            saved_path = vis_fname
-            result.update({'passed': True, 'score': score, 'saved_path': vis_fname, 'matched_template': tpl, 'message': '템플릿 일치'})
+            vis_fname = debug_dir / f'imgcheck_pass_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png'
+            cv2.imwrite(str(vis_fname), vis)
+            saved_path = str(vis_fname)
+            result.update({'passed': True, 'score': score, 'saved_path': saved_path, 'matched_template': tpl, 'message': '템플릿 일치'})
         else:
             best_score = None
             if info and isinstance(info, dict):
@@ -2343,10 +2349,10 @@ def _perform_imgcheck(img_path):
                     best_score = best_raw[1]
             msg = f'imgcheck FAIL: {os.path.basename(img_path)} 찾지 못함'
             print(msg)
-            fail_fname = os.path.join(debug_dir, f'imgcheck_fail_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png')
-            cv2.imwrite(fail_fname, screen)
-            saved_path = fail_fname
-            result.update({'passed': False, 'score': best_score, 'saved_path': fail_fname, 'message': '일치 없음'})
+            fail_fname = debug_dir / f'imgcheck_fail_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png'
+            cv2.imwrite(str(fail_fname), screen)
+            saved_path = str(fail_fname)
+            result.update({'passed': False, 'score': best_score, 'saved_path': saved_path, 'message': '일치 없음'})
     except Exception as e:
         msg = f'imgcheck 실행 중 오류: {e}'
         result['message'] = msg

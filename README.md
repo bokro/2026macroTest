@@ -13,10 +13,10 @@ pip install opencv-python numpy pillow psutil pywin32
 
 3. 실행:
 ```
-python script/imgCheck.py
+python script/imgcheck/imgCheck.py
 # 또는
-python script/imgCheck.py --pid 1234
-python script/imgCheck.py --name chrome
+python script/imgcheck/imgCheck.py --pid 1234
+python script/imgcheck/imgCheck.py --name chrome
 ```
 
 4. 결과:

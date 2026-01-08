@@ -23,6 +23,12 @@ import sys
 import time
 import argparse
 from typing import List, Tuple, Optional
+from pathlib import Path
+
+# 프로젝트 루트 기준 경로
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_IMG_DIR = BASE_DIR / 'img'
+DEBUG_DIR = BASE_DIR / 'debugimg'
 
 # 외부 의존성 확인
 try:
@@ -331,7 +337,7 @@ def main():
     parser = argparse.ArgumentParser(description="프로세스 화면에서 img/ 폴더의 템플릿 매칭을 수행합니다.")
     parser.add_argument('--pid', type=int, help='타겟 프로세스 PID')
     parser.add_argument('--name', type=str, help='프로세스 이름 또는 창 제목(부분 일치 검색)')
-    parser.add_argument('--img-dir', type=str, default='img', help='템플릿 이미지가 들어있는 폴더 (기본: img)')
+    parser.add_argument('--img-dir', type=str, default=str(DEFAULT_IMG_DIR), help='템플릿 이미지가 들어있는 폴더 (기본: img)')
     parser.add_argument('--threshold', type=float, default=0.9, help='매칭 임계값 (기본 0.9)')
     parser.add_argument('--verbose', action='store_true', help='디버그 로그 및 디버그 이미지 저장 메시지 출력')
     parser.add_argument('--no-feature', action='store_true', help='템플릿 매칭 실패 시 특징 기반 매칭(ORB) 시도를 비활성화')
@@ -367,6 +373,11 @@ def main():
     globals()['ORB_RATIO'] = args.orb_ratio
     globals()['ORB_MIN_INLIERS'] = args.orb_min_inliers
 
+    img_dir = Path(args.img_dir)
+    if not img_dir.is_absolute():
+        img_dir = BASE_DIR / img_dir
+    args.img_dir = str(img_dir)
+
     # DPI awareness: 고해상도 화면에서 캡처 픽셀 정합성 개선
     if sys.platform == 'win32':
         try:
@@ -376,8 +387,8 @@ def main():
         except Exception:
             pass
 
-    if not os.path.isdir(args.img_dir):
-        print(f"이미지 폴더가 존재하지 않습니다: {args.img_dir}")
+    if not img_dir.is_dir():
+        print(f"이미지 폴더가 존재하지 않습니다: {img_dir}")
         sys.exit(1)
 
     target_pid = None
@@ -494,12 +505,12 @@ def main():
         sys.exit(1)
 
     # debugimg 디렉토리 생성 및 캡처 저장
-    debug_dir = os.path.join(os.getcwd(), 'debugimg')
-    os.makedirs(debug_dir, exist_ok=True)
+    debug_dir = DEBUG_DIR
+    debug_dir.mkdir(parents=True, exist_ok=True)
     ts = time.strftime('%Y%m%d_%H%M%S')
-    capture_fname = os.path.join(debug_dir, f'capture_pid{target_pid}_hwnd{hwnd}_{ts}.png')
+    capture_fname = debug_dir / f'capture_pid{target_pid}_hwnd{hwnd}_{ts}.png'
     try:
-        cv2.imwrite(capture_fname, screen)
+        cv2.imwrite(str(capture_fname), screen)
         if globals().get('VERBOSE', False):
             print(f"디버그: 캡처 이미지 저장 -> {capture_fname}")
     except Exception as e:
@@ -520,9 +531,9 @@ def main():
         top_left = loc
         bottom_right = (top_left[0] + w_t, top_left[1] + h_t)
         cv2.rectangle(vis, top_left, bottom_right, (0,255,0), 2)
-        vis_fname = os.path.join(debug_dir, f"match_{os.path.splitext(os.path.basename(tpl))[0]}_{score:.3f}_{ts}.png")
+        vis_fname = debug_dir / f"match_{os.path.splitext(os.path.basename(tpl))[0]}_{score:.3f}_{ts}.png"
         try:
-            cv2.imwrite(vis_fname, vis)
+            cv2.imwrite(str(vis_fname), vis)
             if globals().get('VERBOSE', False):
                 print(f"디버그: 매칭 결과 이미지 저장 -> {vis_fname}")
         except Exception as e:
@@ -553,9 +564,9 @@ def main():
             vis = screen.copy()
             pts_int = np.int32(poly)
             cv2.polylines(vis, [pts_int], True, (0,255,0), 3)
-            vis_fname = os.path.join(debug_dir, f"feature_{os.path.splitext(os.path.basename(tpl))[0]}_{inliers}_{ts}.png")
+            vis_fname = debug_dir / f"feature_{os.path.splitext(os.path.basename(tpl))[0]}_{inliers}_{ts}.png"
             try:
-                cv2.imwrite(vis_fname, vis)
+                cv2.imwrite(str(vis_fname), vis)
                 if globals().get('VERBOSE', False):
                     print(f"디버그: 특징 매칭 결과 저장 -> {vis_fname}")
             except Exception as e:
@@ -576,8 +587,8 @@ def main():
                     if best and best.get('location_poly') is not None:
                         pts_int = np.int32(best['location_poly'])
                         cv2.polylines(vis, [pts_int], True, (0,0,255), 3)
-                    vis_fname = os.path.join(debug_dir, f"feature_best_{os.path.splitext(os.path.basename(tpl_path))[0]}_{best_inliers}_{ts}.png")
-                    cv2.imwrite(vis_fname, vis)
+                    vis_fname = debug_dir / f"feature_best_{os.path.splitext(os.path.basename(tpl_path))[0]}_{best_inliers}_{ts}.png"
+                    cv2.imwrite(str(vis_fname), vis)
                     if globals().get('VERBOSE', False):
                         print(f"디버그: 특징 실패 최고 후보 저장 -> {vis_fname}")
                 except Exception as e:
