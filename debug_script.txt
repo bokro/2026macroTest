@@ -1,0 +1,5 @@
+0|key_down|a
+100|key_up|a
+200|mouse_move|100|100
+300|mouse_click|left|press|100|100
+350|mouse_click|left|release|100|100

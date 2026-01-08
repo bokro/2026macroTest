@@ -1,0 +1,292 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-07T07:13:38.590533Z",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "active_window_hwnd": 6491530,
+    "active_window_title": "Microsoft Excel (제품 인증 실패) - 통합 문서1",
+    "active_window_pid": 3476,
+    "active_process_name": "EXCEL.EXE"
+  },
+  "events": [
+    {
+      "t_ms": 66,
+      "type": "mouse_move",
+      "params": [
+        823,
+        424
+      ]
+    },
+    {
+      "t_ms": 74,
+      "type": "key_up",
+      "params": [
+        "Key.f7"
+      ]
+    },
+    {
+      "t_ms": 117,
+      "type": "mouse_move",
+      "params": [
+        828,
+        440
+      ]
+    },
+    {
+      "t_ms": 168,
+      "type": "mouse_move",
+      "params": [
+        835,
+        476
+      ]
+    },
+    {
+      "t_ms": 371,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        835,
+        487
+      ]
+    },
+    {
+      "t_ms": 462,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        835,
+        487
+      ]
+    },
+    {
+      "t_ms": 497,
+      "type": "mouse_move",
+      "params": [
+        835,
+        487
+      ]
+    },
+    {
+      "t_ms": 547,
+      "type": "mouse_move",
+      "params": [
+        843,
+        484
+      ]
+    },
+    {
+      "t_ms": 597,
+      "type": "mouse_move",
+      "params": [
+        958,
+        450
+      ]
+    },
+    {
+      "t_ms": 648,
+      "type": "mouse_move",
+      "params": [
+        1040,
+        425
+      ]
+    },
+    {
+      "t_ms": 672,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1044,
+        423
+      ]
+    },
+    {
+      "t_ms": 763,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1044,
+        423
+      ]
+    },
+    {
+      "t_ms": 792,
+      "type": "mouse_move",
+      "params": [
+        1045,
+        423
+      ]
+    },
+    {
+      "t_ms": 842,
+      "type": "mouse_move",
+      "params": [
+        1054,
+        429
+      ]
+    },
+    {
+      "t_ms": 893,
+      "type": "mouse_move",
+      "params": [
+        1046,
+        497
+      ]
+    },
+    {
+      "t_ms": 943,
+      "type": "mouse_move",
+      "params": [
+        1015,
+        572
+      ]
+    },
+    {
+      "t_ms": 993,
+      "type": "mouse_move",
+      "params": [
+        996,
+        593
+      ]
+    },
+    {
+      "t_ms": 1045,
+      "type": "mouse_move",
+      "params": [
+        994,
+        591
+      ]
+    },
+    {
+      "t_ms": 1095,
+      "type": "mouse_move",
+      "params": [
+        984,
+        579
+      ]
+    },
+    {
+      "t_ms": 1153,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        980,
+        575
+      ]
+    },
+    {
+      "t_ms": 1264,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        980,
+        575
+      ]
+    },
+    {
+      "t_ms": 1277,
+      "type": "mouse_move",
+      "params": [
+        979,
+        575
+      ]
+    },
+    {
+      "t_ms": 1327,
+      "type": "mouse_move",
+      "params": [
+        974,
+        574
+      ]
+    },
+    {
+      "t_ms": 1377,
+      "type": "mouse_move",
+      "params": [
+        950,
+        548
+      ]
+    },
+    {
+      "t_ms": 1427,
+      "type": "mouse_move",
+      "params": [
+        919,
+        498
+      ]
+    },
+    {
+      "t_ms": 1477,
+      "type": "mouse_move",
+      "params": [
+        903,
+        448
+      ]
+    },
+    {
+      "t_ms": 1543,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        890,
+        416
+      ]
+    },
+    {
+      "t_ms": 1647,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        890,
+        416
+      ]
+    },
+    {
+      "t_ms": 1690,
+      "type": "mouse_move",
+      "params": [
+        890,
+        416
+      ]
+    },
+    {
+      "t_ms": 1740,
+      "type": "mouse_move",
+      "params": [
+        859,
+        417
+      ]
+    },
+    {
+      "t_ms": 1791,
+      "type": "mouse_move",
+      "params": [
+        819,
+        418
+      ]
+    },
+    {
+      "t_ms": 1898,
+      "type": "key_down",
+      "params": [
+        "Key.esc"
+      ]
+    },
+    {
+      "t_ms": 1926,
+      "type": "mouse_move",
+      "params": [
+        808,
+        417
+      ]
+    }
+  ]
+}
