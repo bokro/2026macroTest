@@ -1,0 +1,949 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-12T07:13:44.349592Z",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "active_window_hwnd": 2690334,
+    "active_window_title": "Microsoft Excel (제품 인증 실패) - 통합 문서1",
+    "active_window_pid": 20028,
+    "active_process_name": "EXCEL.EXE"
+  },
+  "events": [
+    {
+      "t_ms": 68,
+      "type": "mouse_move",
+      "params": [
+        1230,
+        587
+      ]
+    },
+    {
+      "t_ms": 119,
+      "type": "mouse_move",
+      "params": [
+        1225,
+        584
+      ]
+    },
+    {
+      "t_ms": 169,
+      "type": "mouse_move",
+      "params": [
+        1218,
+        577
+      ]
+    },
+    {
+      "t_ms": 220,
+      "type": "mouse_move",
+      "params": [
+        1211,
+        564
+      ]
+    },
+    {
+      "t_ms": 270,
+      "type": "mouse_move",
+      "params": [
+        1201,
+        536
+      ]
+    },
+    {
+      "t_ms": 320,
+      "type": "mouse_move",
+      "params": [
+        1188,
+        502
+      ]
+    },
+    {
+      "t_ms": 378,
+      "type": "mouse_move",
+      "params": [
+        1185,
+        490
+      ]
+    },
+    {
+      "t_ms": 435,
+      "type": "mouse_move",
+      "params": [
+        1184,
+        490
+      ]
+    },
+    {
+      "t_ms": 485,
+      "type": "mouse_move",
+      "params": [
+        1114,
+        528
+      ]
+    },
+    {
+      "t_ms": 535,
+      "type": "mouse_move",
+      "params": [
+        995,
+        563
+      ]
+    },
+    {
+      "t_ms": 587,
+      "type": "mouse_move",
+      "params": [
+        973,
+        570
+      ]
+    },
+    {
+      "t_ms": 642,
+      "type": "mouse_move",
+      "params": [
+        965,
+        573
+      ]
+    },
+    {
+      "t_ms": 658,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        965,
+        573
+      ]
+    },
+    {
+      "t_ms": 777,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        965,
+        573
+      ]
+    },
+    {
+      "t_ms": 805,
+      "type": "mouse_move",
+      "params": [
+        965,
+        573
+      ]
+    },
+    {
+      "t_ms": 855,
+      "type": "mouse_move",
+      "params": [
+        989,
+        576
+      ]
+    },
+    {
+      "t_ms": 916,
+      "type": "mouse_move",
+      "params": [
+        996,
+        578
+      ]
+    },
+    {
+      "t_ms": 956,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        996,
+        578
+      ]
+    },
+    {
+      "t_ms": 1027,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        996,
+        578
+      ]
+    },
+    {
+      "t_ms": 1061,
+      "type": "mouse_move",
+      "params": [
+        997,
+        578
+      ]
+    },
+    {
+      "t_ms": 1111,
+      "type": "mouse_move",
+      "params": [
+        1014,
+        596
+      ]
+    },
+    {
+      "t_ms": 1161,
+      "type": "mouse_move",
+      "params": [
+        1029,
+        628
+      ]
+    },
+    {
+      "t_ms": 1201,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1028,
+        632
+      ]
+    },
+    {
+      "t_ms": 1282,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1028,
+        632
+      ]
+    },
+    {
+      "t_ms": 1306,
+      "type": "mouse_move",
+      "params": [
+        1028,
+        632
+      ]
+    },
+    {
+      "t_ms": 1356,
+      "type": "mouse_move",
+      "params": [
+        1041,
+        617
+      ]
+    },
+    {
+      "t_ms": 1406,
+      "type": "mouse_move",
+      "params": [
+        1105,
+        559
+      ]
+    },
+    {
+      "t_ms": 1458,
+      "type": "mouse_move",
+      "params": [
+        1159,
+        517
+      ]
+    },
+    {
+      "t_ms": 1466,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1162,
+        515
+      ]
+    },
+    {
+      "t_ms": 1547,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1162,
+        515
+      ]
+    },
+    {
+      "t_ms": 1552,
+      "type": "mouse_move",
+      "params": [
+        1162,
+        515
+      ]
+    },
+    {
+      "t_ms": 1610,
+      "type": "mouse_move",
+      "params": [
+        1167,
+        515
+      ]
+    },
+    {
+      "t_ms": 1678,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1167,
+        515
+      ]
+    },
+    {
+      "t_ms": 1744,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1167,
+        515
+      ]
+    },
+    {
+      "t_ms": 1823,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1167,
+        515
+      ]
+    },
+    {
+      "t_ms": 1905,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1167,
+        515
+      ]
+    },
+    {
+      "t_ms": 2088,
+      "type": "mouse_move",
+      "params": [
+        1168,
+        515
+      ]
+    },
+    {
+      "t_ms": 2194,
+      "type": "key_down",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2231,
+      "type": "mouse_move",
+      "params": [
+        1170,
+        516
+      ]
+    },
+    {
+      "t_ms": 2269,
+      "type": "key_down",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2282,
+      "type": "mouse_move",
+      "params": [
+        1179,
+        522
+      ]
+    },
+    {
+      "t_ms": 2298,
+      "type": "key_up",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2332,
+      "type": "mouse_move",
+      "params": [
+        1191,
+        532
+      ]
+    },
+    {
+      "t_ms": 2344,
+      "type": "key_down",
+      "params": [
+        "3"
+      ]
+    },
+    {
+      "t_ms": 2369,
+      "type": "key_up",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2382,
+      "type": "mouse_move",
+      "params": [
+        1202,
+        546
+      ]
+    },
+    {
+      "t_ms": 2458,
+      "type": "key_down",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2463,
+      "type": "mouse_move",
+      "params": [
+        1206,
+        557
+      ]
+    },
+    {
+      "t_ms": 2468,
+      "type": "key_up",
+      "params": [
+        "3"
+      ]
+    },
+    {
+      "t_ms": 2503,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1206,
+        558
+      ]
+    },
+    {
+      "t_ms": 2515,
+      "type": "key_down",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2570,
+      "type": "key_up",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2595,
+      "type": "key_up",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2604,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1206,
+        558
+      ]
+    },
+    {
+      "t_ms": 2646,
+      "type": "mouse_move",
+      "params": [
+        1206,
+        558
+      ]
+    },
+    {
+      "t_ms": 2696,
+      "type": "mouse_move",
+      "params": [
+        1183,
+        584
+      ]
+    },
+    {
+      "t_ms": 2725,
+      "type": "key_down",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2747,
+      "type": "mouse_move",
+      "params": [
+        1145,
+        606
+      ]
+    },
+    {
+      "t_ms": 2777,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1142,
+        608
+      ]
+    },
+    {
+      "t_ms": 2780,
+      "type": "key_down",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2810,
+      "type": "key_down",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 2829,
+      "type": "key_up",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2850,
+      "type": "key_up",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2867,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1142,
+        608
+      ]
+    },
+    {
+      "t_ms": 2872,
+      "type": "mouse_move",
+      "params": [
+        1142,
+        608
+      ]
+    },
+    {
+      "t_ms": 2922,
+      "type": "mouse_move",
+      "params": [
+        1188,
+        591
+      ]
+    },
+    {
+      "t_ms": 2925,
+      "type": "key_up",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 2951,
+      "type": "key_down",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 2971,
+      "type": "key_down",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 2972,
+      "type": "mouse_move",
+      "params": [
+        1262,
+        578
+      ]
+    },
+    {
+      "t_ms": 2988,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1273,
+        576
+      ]
+    },
+    {
+      "t_ms": 3020,
+      "type": "key_up",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 3035,
+      "type": "key_down",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 3045,
+      "type": "key_up",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 3068,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1275,
+        576
+      ]
+    },
+    {
+      "t_ms": 3089,
+      "type": "mouse_move",
+      "params": [
+        1275,
+        575
+      ]
+    },
+    {
+      "t_ms": 3106,
+      "type": "key_up",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 3140,
+      "type": "mouse_move",
+      "params": [
+        1273,
+        571
+      ]
+    },
+    {
+      "t_ms": 3170,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1260,
+        565
+      ]
+    },
+    {
+      "t_ms": 3175,
+      "type": "key_down",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 3190,
+      "type": "mouse_move",
+      "params": [
+        1240,
+        561
+      ]
+    },
+    {
+      "t_ms": 3195,
+      "type": "key_down",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 3225,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1193,
+        554
+      ]
+    },
+    {
+      "t_ms": 3240,
+      "type": "mouse_move",
+      "params": [
+        1175,
+        551
+      ]
+    },
+    {
+      "t_ms": 3261,
+      "type": "key_down",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 3265,
+      "type": "key_up",
+      "params": [
+        "1"
+      ]
+    },
+    {
+      "t_ms": 3290,
+      "type": "key_up",
+      "params": [
+        "2"
+      ]
+    },
+    {
+      "t_ms": 3292,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1164,
+        546
+      ]
+    },
+    {
+      "t_ms": 3327,
+      "type": "mouse_move",
+      "params": [
+        1164,
+        546
+      ]
+    },
+    {
+      "t_ms": 3362,
+      "type": "key_up",
+      "params": [
+        "4"
+      ]
+    },
+    {
+      "t_ms": 3376,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1164,
+        548
+      ]
+    },
+    {
+      "t_ms": 3395,
+      "type": "mouse_move",
+      "params": [
+        1164,
+        548
+      ]
+    },
+    {
+      "t_ms": 3477,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1164,
+        548
+      ]
+    },
+    {
+      "t_ms": 3520,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1164,
+        548
+      ]
+    },
+    {
+      "t_ms": 3538,
+      "type": "mouse_move",
+      "params": [
+        1165,
+        548
+      ]
+    },
+    {
+      "t_ms": 3608,
+      "type": "mouse_move",
+      "params": [
+        1186,
+        556
+      ]
+    },
+    {
+      "t_ms": 3658,
+      "type": "mouse_move",
+      "params": [
+        1144,
+        568
+      ]
+    },
+    {
+      "t_ms": 3708,
+      "type": "mouse_move",
+      "params": [
+        1077,
+        578
+      ]
+    },
+    {
+      "t_ms": 3758,
+      "type": "mouse_move",
+      "params": [
+        976,
+        590
+      ]
+    },
+    {
+      "t_ms": 3810,
+      "type": "mouse_move",
+      "params": [
+        950,
+        592
+      ]
+    },
+    {
+      "t_ms": 3860,
+      "type": "mouse_move",
+      "params": [
+        936,
+        586
+      ]
+    },
+    {
+      "t_ms": 3912,
+      "type": "mouse_move",
+      "params": [
+        911,
+        579
+      ]
+    },
+    {
+      "t_ms": 4014,
+      "type": "mouse_move",
+      "params": [
+        910,
+        579
+      ]
+    },
+    {
+      "t_ms": 4064,
+      "type": "mouse_move",
+      "params": [
+        995,
+        570
+      ]
+    },
+    {
+      "t_ms": 4126,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1028,
+        570
+      ]
+    },
+    {
+      "t_ms": 4206,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1028,
+        570
+      ]
+    },
+    {
+      "t_ms": 4231,
+      "type": "mouse_move",
+      "params": [
+        1028,
+        569
+      ]
+    },
+    {
+      "t_ms": 4282,
+      "type": "mouse_move",
+      "params": [
+        1022,
+        570
+      ]
+    },
+    {
+      "t_ms": 4333,
+      "type": "mouse_move",
+      "params": [
+        1003,
+        577
+      ]
+    },
+    {
+      "t_ms": 4389,
+      "type": "mouse_move",
+      "params": [
+        989,
+        582
+      ]
+    },
+    {
+      "t_ms": 4505,
+      "type": "mouse_move",
+      "params": [
+        988,
+        582
+      ]
+    },
+    {
+      "t_ms": 4555,
+      "type": "mouse_move",
+      "params": [
+        1001,
+        565
+      ]
+    },
+    {
+      "t_ms": 4613,
+      "type": "mouse_move",
+      "params": [
+        1011,
+        552
+      ]
+    },
+    {
+      "t_ms": 5096,
+      "type": "key_down",
+      "params": [
+        "Key.esc"
+      ]
+    }
+  ]
+}
