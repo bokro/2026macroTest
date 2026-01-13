@@ -1,12 +1,12 @@
 {
   "meta": {
     "recorder_version": "1.0",
-    "timestamp": "2026-01-12T07:20:51.040557Z",
+    "timestamp": "2026-01-13T12:39:39.039656",
     "screen_width": 1920,
     "screen_height": 1080,
-    "active_window_hwnd": 4852874,
+    "active_window_hwnd": 656354,
     "active_window_title": "Please Use Only QA",
-    "active_window_pid": 24632,
+    "active_window_pid": 19084,
     "active_process_name": "python.exe"
   },
   "events": [
@@ -380,6 +380,101 @@
     },
     {
       "t_ms": 3217,
+      "type": "key_down",
+      "params": [
+        "Key.esc"
+      ]
+    },
+    {
+      "t_ms": 3271,
+      "type": "mouse_move",
+      "params": [
+        522,
+        313
+      ]
+    },
+    {
+      "t_ms": 3524,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        471,
+        523
+      ]
+    },
+    {
+      "t_ms": 3600,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        471,
+        523
+      ]
+    },
+    {
+      "t_ms": 3814,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        630,
+        578
+      ]
+    },
+    {
+      "t_ms": 3889,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        630,
+        578
+      ]
+    },
+    {
+      "t_ms": 4044,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        610,
+        493
+      ]
+    },
+    {
+      "t_ms": 4128,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        608,
+        493
+      ]
+    },
+    {
+      "t_ms": 4332,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        445,
+        573
+      ]
+    },
+    {
+      "t_ms": 4425,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        445,
+        573
+      ]
+    },
+    {
+      "t_ms": 4638,
       "type": "key_down",
       "params": [
         "Key.esc"

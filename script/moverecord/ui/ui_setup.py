@@ -7,6 +7,8 @@ moveRecord.py의 __init__ 메서드에서 UI 설정 로직을 분리한 모듈�
 import tkinter as tk
 from tkinter import ttk
 
+from ui.dialogs.mouse_help import show_mouse_help
+
 
 def setup_ui(app):
     """
@@ -59,7 +61,7 @@ def setup_ui(app):
     app._hotkeys_prev = {
         'HOTKEY': globals().get('HOTKEY', 'f5'),
         'PLAY_HOTKEY': globals().get('PLAY_HOTKEY', 'f6'),
-        'RECORD_START_HOTKEY': globals().get('RECORD_START_HOTKEY', ''),
+        'RECORD_START_HOTKEY': globals().get('RECORD_START_HOTKEY', 'f7'),
         'RECORD_STOP_HOTKEY': globals().get('RECORD_STOP_HOTKEY', 'esc'),
     }
     
@@ -82,7 +84,7 @@ def _setup_tab3_editor(app, frm3):
     app.btn_editor_save.grid(row=0, column=1, pady=(6,0), sticky='w')
     app.btn_editor_clear = tk.Button(frm3, text='초기화', width=10, command=app._clear_editor)
     app.btn_editor_clear.grid(row=0, column=2, pady=(6,0), sticky='w')
-    app.btn_editor_help = tk.Button(frm3, text='?', width=3, command=app._show_mouse_help)
+    app.btn_editor_help = tk.Button(frm3, text='?', width=3, command=show_mouse_help)
     app.btn_editor_help.grid(row=0, column=3, pady=(6,0), sticky='e')
     
     # 메타 필드
@@ -104,25 +106,38 @@ def _setup_tab3_editor(app, frm3):
     app.meta_height = tk.Entry(frm3, width=10)
     app.meta_height.grid(row=3, column=3, sticky='w')
     
-    tk.Label(frm3, text='(Params는 JSON 배열 형식으로 입력하세요, 예: ["a"])', fg='gray').grid(row=4, column=0, columnspan=4, sticky='w')
+    # Active window meta fields
+    tk.Label(frm3, text='active_window_title').grid(row=4, column=0, sticky='w')
+    app.meta_active_title = tk.Entry(frm3, width=40)
+    app.meta_active_title.grid(row=4, column=1, columnspan=3, sticky='w')
+    
+    tk.Label(frm3, text='active_window_pid').grid(row=5, column=0, sticky='w')
+    app.meta_active_pid = tk.Entry(frm3, width=10)
+    app.meta_active_pid.grid(row=5, column=1, sticky='w')
+    
+    tk.Label(frm3, text='active_process_name').grid(row=5, column=2, sticky='w')
+    app.meta_active_process = tk.Entry(frm3, width=20)
+    app.meta_active_process.grid(row=5, column=3, sticky='w')
+    
+    tk.Label(frm3, text='(Params는 JSON 배열 형식으로 입력하세요, 예: ["a"])', fg='gray').grid(row=6, column=0, columnspan=4, sticky='w')
     
     # 에디터 헤더
     app.editor_header = tk.Frame(frm3)
-    app.editor_header.grid(row=5, column=0, columnspan=4, sticky='we', pady=(6,0))
+    app.editor_header.grid(row=7, column=0, columnspan=4, sticky='we', pady=(6,0))
     tk.Label(app.editor_header, text='시간(ms)', width=12, anchor='w').grid(row=0, column=0, sticky='w')
     tk.Label(app.editor_header, text='타입', width=20, anchor='w').grid(row=0, column=1, sticky='w')
     tk.Label(app.editor_header, text='파라미터 (JSON 배열)', width=60, anchor='w').grid(row=0, column=2, sticky='w')
     
     # 에디터 캔버스 영역
     app.editor_canvas_container = tk.Frame(frm3)
-    app.editor_canvas_container.grid(row=6, column=0, columnspan=4, sticky='nsew')
+    app.editor_canvas_container.grid(row=8, column=0, columnspan=4, sticky='nsew')
     app.editor_canvas = tk.Canvas(app.editor_canvas_container, height=320)
     app.editor_canvas.pack(side='left', fill='both', expand=True)
     app.editor_vsb = tk.Scrollbar(app.editor_canvas_container, orient='vertical', command=app.editor_canvas.yview)
     app.editor_vsb.pack(side='right', fill='y')
     
     app.editor_hsb = tk.Scrollbar(frm3, orient='horizontal', command=app.editor_canvas.xview)
-    app.editor_hsb.grid(row=7, column=0, columnspan=4, sticky='we')
+    app.editor_hsb.grid(row=9, column=0, columnspan=4, sticky='we')
     
     app.editor_canvas.configure(yscrollcommand=app.editor_vsb.set, xscrollcommand=app.editor_hsb.set)
     app.editor_inner = tk.Frame(app.editor_canvas)
@@ -148,31 +163,31 @@ def _setup_tab3_editor(app, frm3):
     
     # 에디터 행 관리 버튼
     app.btn_add_row = tk.Button(frm3, text='행 추가(끝)', width=12, command=lambda: app._add_editor_row())
-    app.btn_add_row.grid(row=8, column=0, pady=(6,0), sticky='w')
+    app.btn_add_row.grid(row=10, column=0, pady=(6,0), sticky='w')
     app.btn_insert_row = tk.Button(frm3, text='행 삽입(중간)', width=12, command=app._insert_row_after_selected)
-    app.btn_insert_row.grid(row=8, column=1, pady=(6,0), sticky='w')
+    app.btn_insert_row.grid(row=10, column=1, pady=(6,0), sticky='w')
     app.btn_time_offset = tk.Button(frm3, text='시간 추가', width=10, command=app._add_time_offset)
-    app.btn_time_offset.grid(row=8, column=2, pady=(6,0), sticky='w')
+    app.btn_time_offset.grid(row=10, column=2, pady=(6,0), sticky='w')
     app.btn_delete_row = tk.Button(frm3, text='행 삭제', width=10, command=app._delete_selected_row)
-    app.btn_delete_row.grid(row=8, column=3, pady=(6,0), sticky='w')
+    app.btn_delete_row.grid(row=10, column=3, pady=(6,0), sticky='w')
     
     app.btn_exit_tab3 = tk.Button(frm3, text='프로그램 종료', width=14, command=app.exit_app, bg='#ffcccc')
-    app.btn_exit_tab3.grid(row=9, column=3, sticky='e', padx=(0, 0), pady=(10,0))
+    app.btn_exit_tab3.grid(row=11, column=3, sticky='e', padx=(0, 0), pady=(10,0))
     
     # 되돌리기/다시하기 메뉴 설정
     app._menu_hover_bg = '#d9e8ff'
     
     app.btn_undo = tk.Button(frm3, text='되돌리기 (Ctrl+Z)', width=16, command=lambda: app._undo_editor())
-    app.btn_undo.grid(row=9, column=0, pady=(4,0), sticky='w')
+    app.btn_undo.grid(row=11, column=0, pady=(4,0), sticky='w')
     app.btn_undo_menu = tk.Menubutton(frm3, text='▼', width=3, relief='raised')
-    app.btn_undo_menu.grid(row=9, column=1, pady=(4,0), sticky='w')
+    app.btn_undo_menu.grid(row=11, column=1, pady=(4,0), sticky='w')
     app.undo_menu = tk.Menu(app.btn_undo_menu, tearoff=0)
     app.btn_undo_menu.configure(menu=app.undo_menu)
     
     app.btn_redo = tk.Button(frm3, text='다시하기 (Ctrl+Y)', width=16, command=lambda: app._redo_editor())
-    app.btn_redo.grid(row=9, column=2, pady=(4,0), sticky='w')
+    app.btn_redo.grid(row=11, column=2, pady=(4,0), sticky='w')
     app.btn_redo_menu = tk.Menubutton(frm3, text='▼', width=3, relief='raised')
-    app.btn_redo_menu.grid(row=9, column=3, pady=(4,0), sticky='w')
+    app.btn_redo_menu.grid(row=11, column=3, pady=(4,0), sticky='w')
     app.redo_menu = tk.Menu(app.btn_redo_menu, tearoff=0)
     app.btn_redo_menu.configure(menu=app.redo_menu)
     

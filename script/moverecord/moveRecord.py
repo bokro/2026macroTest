@@ -6,13 +6,10 @@
 import time
 import threading
 import sys
-import ctypes
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, simpledialog
 import json
 import os
-import platform
-import socket
 import getpass
 import webbrowser
 import csv
@@ -35,10 +32,8 @@ from config.constants import (
 
 # 유틸 임포트
 from utils.key_utils import key_to_name, parse_hotkey_str, parse_key
-from utils.file_utils import collect_pc_meta, escape_html, path_to_href
+from utils.file_utils import path_to_href
 from utils.html_utils import generate_html
-from utils.imgcheck_utils import perform_imgcheck
-from utils.logging import write_test_log as _write_test_log
 
 # 녹화 임포트
 from recording.save_events import save_events_to_file, migrate_txt_to_json as _migrate_txt_to_json
@@ -49,7 +44,7 @@ from playback.playback_engine import playback_from_file
 import playback.playback_engine as playback_engine
 
 # Worker 임포트
-from workers.simple_macro import worker, show_exit_message
+from workers.simple_macro import worker
 
 # UI 임포트
 from ui.ui_setup import setup_ui
@@ -110,6 +105,7 @@ HOTKEY = 'f5'  # 기본 핫키: F5
 
 # ============ 글로벌 키 핸들러 ============
 def on_press_global(key):
+    """글로벌 키 핸들러"""
     try:
         name = key_to_name(key)
         # ignore global handling when synthetic events are being injected
@@ -121,13 +117,13 @@ def on_press_global(key):
         # record stop hotkey (default ESC)
         rstop = globals().get('RECORD_STOP_HOTKEY', 'esc')
         if rstop and name == rstop:
-            print("녹화 중지/ESC 감지: 즉시 중지합니다.")
+            print("[LOG] 녹화 중지/ESC 감지: 즉시 중지합니다.")
             stop_event.set()
             playback_stop_event.set()
             return
         hot = globals().get('HOTKEY', 'f5')
         if hot and name == hot:
-            print(f"{hot.upper()} 감지: 시작 시도 (글로벌)")
+            print(f"[LOG] {hot.upper()} 감지: 시작 시도 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -137,7 +133,7 @@ def on_press_global(key):
                     pass
         play_hot = globals().get('PLAY_HOTKEY', 'f6')
         if play_hot and name == play_hot:
-            print(f"{play_hot.upper()} 감지: 재생 토글 (글로벌)")
+            print(f"[LOG] {play_hot.upper()} 감지: 재생 토글 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -146,7 +142,7 @@ def on_press_global(key):
                     pass
         rstart = globals().get('RECORD_START_HOTKEY', 'f7')
         if rstart and name == rstart:
-            print(f"{rstart.upper()} 감지: 녹화 시작 (글로벌)")
+            print(f"[LOG] {rstart.upper()} 감지: 녹화 시작 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -157,57 +153,7 @@ def on_press_global(key):
         pass
 
 # ============ Worker & Helper Functions ============
-# worker와 show_exit_message는 workers.simple_macro에서 import됨
-
-def _write_test_log(log_data):
-    """Write playback/test results to HTML and CSV, and open the HTML."""
-    log_dir = BASE_DIR / 'logs'
-    log_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    base = f'test_log_{ts}'
-    html_path = log_dir / f'{base}.html'
-    csv_path = log_dir / f'{base}.csv'
-
-    script_path = log_data.get('script_path', '')
-    img_results = log_data.get('imgcheck_results', []) or []
-
-    # CSV output for Excel-friendly view
-    try:
-        with open(csv_path, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.writer(f)
-            writer.writerow(['idx', 'template', 'passed', 'score', 'saved_image', 'message', 'played_at_ms'])
-            for idx, ev in enumerate(img_results, 1):
-                writer.writerow([
-                    idx,
-                    ev.get('input_image', ''),
-                    ev.get('passed', False),
-                    ev.get('score', ''),
-                    ev.get('saved_path', ''),
-                    ev.get('message', ''),
-                    ev.get('elapsed_ms', ''),
-                ])
-    except Exception:
-        pass
-
-    # 로그 데이터 업데이트 (HTML 생성을 위해)
-    log_data['log_dir'] = str(log_dir)
-    log_data['csv_filename'] = os.path.basename(csv_path)
-    
-    # HTML 생성 (utils.html_utils 사용)
-    html_body = generate_html(log_data)
-
-    try:
-        with open(html_path, 'w', encoding='utf-8') as f:
-            f.write(html_body)
-    except Exception:
-        pass
-
-    try:
-        webbrowser.open(path_to_href(str(html_path)))
-    except Exception:
-        pass
-
-    return html_path, csv_path
+# worker는 workers.simple_macro에서 import됨
 
 # GUI 애플리케이션
 class App:
@@ -225,7 +171,7 @@ class App:
         
         # worker 완료 콜백 설정
         on_worker_finished = self._on_worker_finished
-
+#============ hotkey 관련 메서드 ============
     def _on_hotkey_change(self):
         raw = self.entry_hotkey.get().strip()
         parsed = parse_hotkey_str(raw)
@@ -309,6 +255,8 @@ class App:
     def _on_hotkey_change(self):
         raw = self.entry_hotkey.get().strip()
         self._set_hotkey_with_check(self.entry_hotkey, raw, 'HOTKEY', 'HOTKEY')
+
+#============ hotkey 관련 메서드 ============
 
     def start_playback(self):
         # explicit playback start triggered by '녹화시작' 버튼
@@ -431,7 +379,7 @@ class App:
         # 입력값이 유효하면 시작 버튼 및 스크립트 시작 버튼 활성화
         self.validate_inputs()
         
-        print("[_finish_ui_update] playback_thread, worker_thread 정리 및 이벤트 초기화 완료")
+        print("[LOG] [_finish_ui_update] playback_thread, worker_thread 정리 및 이벤트 초기화 완료")
 
     def _update_playback_status(self, elapsed_s: float, total_s: float, speed: float):
         # Update timer label
@@ -476,26 +424,25 @@ class App:
             pass
         return info
 
+    def _recording_meta_defaults(self):
+        """Return meta fields aligned with recording output."""
+        meta = {
+            'recorder_version': RECORDER_VERSION,
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'screen_width': None,
+            'screen_height': None,
+        }
+        try:
+            meta['screen_width'] = self.root.winfo_screenwidth()
+            meta['screen_height'] = self.root.winfo_screenheight()
+        except Exception:
+            pass
+        return meta
+
     def _get_primary_selected_index(self):
         if not self.selected_row_indices:
             return None
         return min(self.selected_row_indices)
-
-    def _show_mouse_help(self):
-        # Show help popup for mouse_click and mouse_scroll parameters
-        help_text = (
-            "mouse_click\n"
-            "  [btn, action, x, y]\n"
-            "  btn: Button.left | Button.right\n"
-            "  action: press | release (클릭은 press와 release 두 이벤트)\n"
-            "  x, y: 화면 좌표\n\n"
-            "mouse_scroll\n"
-            "  [dx, dy, x, y]\n"
-            "  dx: 가로 스크롤 (주로 0)\n"
-            "  dy: 세로 스크롤 (+위/-아래)\n"
-            "  x, y: 스크롤할 위치 좌표"
-        )
-        messagebox.showinfo('마우스 이벤트 도움말', help_text)
 
     # --------------------- JSON Editor Related Methods ---------------------
     def load_script_to_editor(self):
@@ -625,18 +572,36 @@ class App:
         return 'break'
 
     def _populate_editor_from_payload(self, data):
-        # meta
-        meta = data.get('meta', {}) if isinstance(data, dict) else {}
-        self.meta_version.delete(0, tk.END)
-        self.meta_version.insert(0, meta.get('recorder_version', ''))
-        self.meta_timestamp.delete(0, tk.END)
-        self.meta_timestamp.insert(0, meta.get('timestamp', ''))
-        self.meta_width.delete(0, tk.END)
-        self.meta_width.insert(0, str(meta.get('screen_width', '') or ''))
-        self.meta_height.delete(0, tk.END)
-        self.meta_height.insert(0, str(meta.get('screen_height', '') or ''))
-        # events
+        # reset UI before filling
         self._clear_editor(skip_snapshot=True)
+
+        # meta (merge file meta onto recording defaults)
+        defaults = self._recording_meta_defaults()
+        meta = defaults.copy()
+        if isinstance(data, dict):
+            try:
+                meta.update(data.get('meta', {}) or {})
+            except Exception:
+                pass
+
+        self.meta_version.delete(0, tk.END)
+        self.meta_version.insert(0, meta.get('recorder_version', '') or '')
+        self.meta_timestamp.delete(0, tk.END)
+        self.meta_timestamp.insert(0, meta.get('timestamp', '') or '')
+        self.meta_width.delete(0, tk.END)
+        self.meta_width.insert(0, '' if meta.get('screen_width') is None else str(meta.get('screen_width')))
+        self.meta_height.delete(0, tk.END)
+        self.meta_height.insert(0, '' if meta.get('screen_height') is None else str(meta.get('screen_height')))
+        
+        # active window fields
+        self.meta_active_title.delete(0, tk.END)
+        self.meta_active_title.insert(0, meta.get('active_window_title', '') or '')
+        self.meta_active_pid.delete(0, tk.END)
+        self.meta_active_pid.insert(0, '' if meta.get('active_window_pid') is None else str(meta.get('active_window_pid')))
+        self.meta_active_process.delete(0, tk.END)
+        self.meta_active_process.insert(0, meta.get('active_process_name', '') or '')
+
+        # events
         raw = data.get('events', data) if isinstance(data, dict) else data
         if not isinstance(raw, list):
             return
@@ -1095,6 +1060,9 @@ class App:
         self.meta_timestamp.delete(0, tk.END)
         self.meta_width.delete(0, tk.END)
         self.meta_height.delete(0, tk.END)
+        self.meta_active_title.delete(0, tk.END)
+        self.meta_active_pid.delete(0, tk.END)
+        self.meta_active_process.delete(0, tk.END)
         self.btn_editor_save.config(state='disabled')
 
     def save_edited_script(self):
@@ -1105,16 +1073,57 @@ class App:
             fpath = None
         if not fpath:
             return
-        # gather meta
-        meta = {
-            'recorder_version': self.meta_version.get().strip(),
-            'timestamp': self.meta_timestamp.get().strip(),
-        }
-        try:
-            w = int(self.meta_width.get().strip()) if self.meta_width.get().strip() else None
-            h = int(self.meta_height.get().strip()) if self.meta_height.get().strip() else None
+        # gather meta (align with recording default format)
+        meta = self._recording_meta_defaults()
+        user_version = self.meta_version.get().strip()
+        if user_version:
+            meta['recorder_version'] = user_version
+        user_ts = self.meta_timestamp.get().strip()
+        if user_ts:
+            meta['timestamp'] = user_ts
+        # width/height fall back to defaults if blank or invalid
+        def _parse_int(val):
+            s = val.strip()
+            if not s:
+                return None
+            try:
+                return int(s)
+            except Exception:
+                return None
+        w = _parse_int(self.meta_width.get())
+        h = _parse_int(self.meta_height.get())
+        if w is not None:
             meta['screen_width'] = w
+        if h is not None:
             meta['screen_height'] = h
+        
+        # active window fields
+        active_title = self.meta_active_title.get().strip()
+        if active_title:
+            meta['active_window_title'] = active_title
+        active_pid = _parse_int(self.meta_active_pid.get())
+        if active_pid is not None:
+            meta['active_window_pid'] = active_pid
+        active_process = self.meta_active_process.get().strip()
+        if active_process:
+            meta['active_process_name'] = active_process
+        
+        # reflect resolved meta back to UI
+        try:
+            self.meta_version.delete(0, tk.END)
+            self.meta_version.insert(0, meta.get('recorder_version', ''))
+            self.meta_timestamp.delete(0, tk.END)
+            self.meta_timestamp.insert(0, meta.get('timestamp', ''))
+            self.meta_width.delete(0, tk.END)
+            self.meta_width.insert(0, '' if meta.get('screen_width') is None else str(meta.get('screen_width')))
+            self.meta_height.delete(0, tk.END)
+            self.meta_height.insert(0, '' if meta.get('screen_height') is None else str(meta.get('screen_height')))
+            self.meta_active_title.delete(0, tk.END)
+            self.meta_active_title.insert(0, meta.get('active_window_title', '') or '')
+            self.meta_active_pid.delete(0, tk.END)
+            self.meta_active_pid.insert(0, '' if meta.get('active_window_pid') is None else str(meta.get('active_window_pid')))
+            self.meta_active_process.delete(0, tk.END)
+            self.meta_active_process.insert(0, meta.get('active_process_name', '') or '')
         except Exception:
             pass
         # events
@@ -1272,22 +1281,22 @@ class App:
                     pass
 
                 if error:
-                    print(f"[녹화 에러] {error}")
+                    print(f"[LOG] [녹화 에러] {error}")
                     messagebox.showerror('오류', f'녹화 실패: {error}')
                     self.status.config(text='녹화 실패')
                 else:
-                    print(f"[녹화 완료] 이벤트 수: {len(evts) if evts else 0}")
+                    print(f"[LOG] [녹화 완료] 이벤트 수: {len(evts) if evts else 0}")
                     saved = None
                     if evts:
                         try:
                             from recording.save_events import save_events_to_file
                             saved = save_events_to_file(evts, default_name='recording.json', meta_extra=meta_extra)
-                            print(f"[저장 결과] {saved}")
+                            print(f"[LOG] [저장 결과] {saved}")
                         except Exception as e2:
-                            print(f"[저장 실패] {e2}")
+                            print(f"[LOG] [저장 실패] {e2}")
                             messagebox.showerror('오류', f'녹화 저장 실패: {e2}')
                     else:
-                        print("[녹화] 이벤트가 없습니다")
+                        print("[LOG] [녹화] 이벤트가 없습니다")
                     
                     if saved:
                         self.status.config(text=f'녹화 저장: {saved}')

@@ -89,7 +89,7 @@ def record_actions(duration_s: float = None, sample_ms: int = 0, meta_extra=None
             while time.time() < t_end and not main.stop_event.is_set():
                 time.sleep(0.05)
     except Exception as e:
-        print(f"[record_actions] 에러: {e}")
+        print(f"[LOG] [record_actions] 에러: {e}")
     finally:
         try:
             if m_listener:
