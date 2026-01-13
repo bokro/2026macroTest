@@ -1,35 +1,53 @@
 # 자동 키 입력 GUI (테스트/QA용)
 # - GUI로 실행 시간을, 입력할 키, 키 입력 간격(ms)를 입력받아 동작합니다.
 # - 모든 입력칸이 채워져 있어야 '시작' 버튼이 활성화됩니다.
-# - ESC(글로벌)를 누르거나 '중지' 버튼을 누르면 즉시 중지됩니다.
+# - ESC(글로벌)를 누르거나 '중지' 버튼을 누르면 즉시 중지됩니다..
 
 import time
 import threading
 import sys
-import ctypes
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, simpledialog
 import json
 import os
-import platform
-import socket
 import getpass
 import webbrowser
 import csv
 from datetime import datetime
+from pathlib import Path
 
-# recorder version for metadata
-RECORDER_VERSION = '1.0'
+# 프로젝트 루트 기준 경로
+BASE_DIR = Path(__file__).resolve().parent.parent
+# imgCheck를 위한 경로 (script/imgcheck)
+IMGCHECK_DIR = BASE_DIR / 'imgcheck'
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
-# playback hotkey (separate from main HOTKEY)
-PLAY_HOTKEY = 'f6'
-# record hotkeys
-RECORD_START_HOTKEY = 'f7'
-RECORD_STOP_HOTKEY = 'esc'
-# suppress handling of global hotkeys while synthetic (script) inputs are sent
-SUPPRESS_HOTKEY = False
-DID_DISABLE_UNDO_REDO_ONCE = False  # 이번 테스트용 임시 비활성화 플래그
+# ============ 모듈 임포트 ============
+# 설정 임포트
+from config.constants import (
+    RECORDER_VERSION, HOTKEY, PLAY_HOTKEY, RECORD_START_HOTKEY,
+    RECORD_STOP_HOTKEY, SUPPRESS_HOTKEY, DID_DISABLE_UNDO_REDO_ONCE, SPECIAL_KEYS
+)
 
+# 유틸 임포트
+from utils.key_utils import key_to_name, parse_hotkey_str, parse_key
+from utils.file_utils import path_to_href
+from utils.html_utils import generate_html
+
+# 녹화 임포트
+from recording.save_events import save_events_to_file, migrate_txt_to_json as _migrate_txt_to_json
+from recording.record_actions import record_actions
+
+# 재생 임포트
+from playback.playback_engine import playback_from_file
+import playback.playback_engine as playback_engine
+
+# Worker 임포트
+from workers.simple_macro import worker
+
+# UI 임포트
+from ui.ui_setup import setup_ui
 
 try:
     from pynput.keyboard import Controller, Key, Listener
@@ -40,14 +58,31 @@ except ImportError:
     sys.exit(1)
 
 # imgCheck 기능 import
+imgcheck_available = False
 try:
     import cv2
     import numpy as np
-    from imgCheck import capture_window, match_templates, find_windows_for_name
-except ImportError:
-    print("경고: imgCheck 기능을 사용하려면 opencv-python, numpy가 필요합니다.")
-    print("설치: pip install opencv-python numpy")
-    # 계속 실행은 가능하도록 (imgcheck 타입만 사용 불가)
+    print(f"[INFO] opencv-python {cv2.__version__}, numpy {np.__version__} 로드 완료")
+    
+    try:
+        # 상대 경로로 imgCheck import
+        sys.path.insert(0, str(IMGCHECK_DIR))
+        from imgCheck import capture_window, match_templates, find_windows_for_name 
+        imgcheck_available = True
+        print("[INFO] imgCheck 모듈 로드 완료")
+    except Exception as e:
+        print(f"[ERROR] imgCheck 모듈 로드 실패: {type(e).__name__}: {e}")
+        print(f"[DEBUG] IMGCHECK_DIR: {IMGCHECK_DIR}")
+        print(f"[DEBUG] sys.path: {sys.path[:3]}")
+        print("[WARNING] imgCheck 기능을 사용할 수 없습니다.")
+        
+except ImportError as e:
+    print(f"[ERROR] opencv-python 또는 numpy 로드 실패: {e}")
+    print("[WARNING] 설치 필요: pip install opencv-python numpy")
+    print("[WARNING] imgCheck 기능을 사용할 수 없습니다.")
+except Exception as e:
+    print(f"[ERROR] 예상치 못한 오류: {type(e).__name__}: {e}")
+    print("[WARNING] imgCheck 기능을 사용할 수 없습니다.")
 
 # 추가 컨트롤러
 mouse_controller = MouseController()
@@ -65,52 +100,30 @@ worker_thread = None
 # callback set by App to notify UI when worker finishes
 on_worker_finished = None
 
-# 글로벌 키 헬퍼: 키 이름으로 정규화 및 핫키 처리
-def key_to_name(key):
-    try:
-        # KeyCode (문자)인 경우
-        if hasattr(key, 'char') and key.char is not None:
-            return key.char.lower()
-    except Exception:
-        pass
-    try:
-        # Key enum (예: Key.f5, Key.enter)
-        return key.name
-    except Exception:
-        return str(key).lower().strip("'\"")
+# ============ 글로벌 핫키 설정 ============
+HOTKEY = 'f5'  # 기본 핫키: F5
 
-def parse_hotkey_str(s: str):
-    k = (s or '').strip().lower()
-    if not k:
-        return None
-    if k in SPECIAL_KEYS:
-        return k
-    if k.startswith('f') and k[1:].isdigit():
-        return k
-    if len(k) == 1:
-        return k
-    return k
-
-# 기본 핫키: F5
-HOTKEY = 'f5'
-
-# 글로벌 키 핸들러: ESC(중지), 사용자 정의 핫키(시작 트리거)
+# ============ 글로벌 키 핸들러 ============
 def on_press_global(key):
+    """글로벌 키 핸들러"""
     try:
         name = key_to_name(key)
         # ignore global handling when synthetic events are being injected
         if globals().get('SUPPRESS_HOTKEY', False):
             return
+        # playback 중에는 핫키 무시
+        if hasattr(playback_engine, '_suppress_hotkey') and playback_engine._suppress_hotkey:
+            return
         # record stop hotkey (default ESC)
         rstop = globals().get('RECORD_STOP_HOTKEY', 'esc')
         if rstop and name == rstop:
-            print("녹화 중지/ESC 감지: 즉시 중지합니다.")
+            print("[LOG] 녹화 중지/ESC 감지: 즉시 중지합니다.")
             stop_event.set()
             playback_stop_event.set()
             return
         hot = globals().get('HOTKEY', 'f5')
         if hot and name == hot:
-            print(f"{hot.upper()} 감지: 시작 시도 (글로벌)")
+            print(f"[LOG] {hot.upper()} 감지: 시작 시도 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -120,7 +133,7 @@ def on_press_global(key):
                     pass
         play_hot = globals().get('PLAY_HOTKEY', 'f6')
         if play_hot and name == play_hot:
-            print(f"{play_hot.upper()} 감지: 재생 토글 (글로벌)")
+            print(f"[LOG] {play_hot.upper()} 감지: 재생 토글 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -129,7 +142,7 @@ def on_press_global(key):
                     pass
         rstart = globals().get('RECORD_START_HOTKEY', 'f7')
         if rstart and name == rstart:
-            print(f"{rstart.upper()} 감지: 녹화 시작 (글로벌)")
+            print(f"[LOG] {rstart.upper()} 감지: 녹화 시작 (글로벌)")
             app = globals().get('app_instance')
             if app:
                 try:
@@ -139,692 +152,26 @@ def on_press_global(key):
     except Exception:
         pass
 
-# 키 파싱: 단일 문자 또는 특수키 이름
-SPECIAL_KEYS = {
-    'enter': Key.enter,
-    'esc': Key.esc,
-    'space': Key.space,
-    'tab': Key.tab,
-    'backspace': Key.backspace,
-    'shift': Key.shift,
-    'ctrl': Key.ctrl,
-    'alt': Key.alt,
-}
-
-def parse_key(key_str: str):
-    k = key_str.strip().lower()
-    if not k:
-        return None
-    if k in SPECIAL_KEYS:
-        return SPECIAL_KEYS[k]
-    # 첫 글자만 사용할 경우 문자로 입력
-    if len(k) == 1:
-        return k
-    # fallback: try first character
-    return k[0]
-
-
-def _collect_pc_meta():
-    """Collect basic PC metadata for logging."""
-    info = {
-        'host': socket.gethostname(),
-        'user': getpass.getuser(),
-        'os': platform.platform(),
-        'python': sys.version.split()[0],
-    }
-    try:
-        app = globals().get('app_instance')
-        if app and getattr(app, 'root', None):
-            info['screen_width'] = app.root.winfo_screenwidth()
-            info['screen_height'] = app.root.winfo_screenheight()
-        else:
-            tmp = tk.Tk()
-            tmp.withdraw()
-            info['screen_width'] = tmp.winfo_screenwidth()
-            info['screen_height'] = tmp.winfo_screenheight()
-            tmp.destroy()
-    except Exception:
-        pass
-    return info
-
-
-def _escape_html(text):
-    try:
-        return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    except Exception:
-        return str(text)
-
-
-def _path_to_href(path):
-    if not path:
-        return ''
-    try:
-        norm = os.path.abspath(path).replace('\\', '/').replace(' ', '%20')
-        return 'file:///' + norm
-    except Exception:
-        return ''
-
-# 녹화 헬퍼: 이벤트와 메타를 JSON 객체로 저장
-def _save_events_to_file(events, default_name='recording.json', meta_extra=None):
-    # Ask for filename (JSON)
-    try:
-        fpath = filedialog.asksaveasfilename(defaultextension='.json', filetypes=[('JSON Files','*.json')], initialfile=default_name)
-    except Exception:
-        fpath = None
-    if not fpath:
-        return None
-    try:
-        # build events list
-        json_events = []
-        for ev in events:
-            t_ms = int(ev[0])
-            etype = ev[1]
-            params = list(ev[2:])
-            json_events.append({'t_ms': t_ms, 'type': etype, 'params': params})
-        # gather screen size from app if available else create temp root
-        screen_w = None
-        screen_h = None
-        app = globals().get('app_instance')
-        try:
-            if app and getattr(app, 'root', None):
-                screen_w = app.root.winfo_screenwidth()
-                screen_h = app.root.winfo_screenheight()
-            else:
-                root_tmp = tk.Tk()
-                root_tmp.withdraw()
-                screen_w = root_tmp.winfo_screenwidth()
-                screen_h = root_tmp.winfo_screenheight()
-                root_tmp.destroy()
-        except Exception:
-            screen_w = None
-            screen_h = None
-        meta = {
-            'recorder_version': RECORDER_VERSION,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'screen_width': screen_w,
-            'screen_height': screen_h
-        }
-        if meta_extra:
-            try:
-                meta.update(meta_extra)
-            except Exception:
-                pass
-        payload = {'meta': meta, 'events': json_events}
-        with open(fpath, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        return fpath
-    except Exception as e:
-        print('파일 저장 실패:', e)
-        return None
-
-# 녹화 함수
-def _migrate_txt_to_json(txt_path):
-    try:
-        events = []
-        with open(txt_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                parts = line.split('|')
-                try:
-                    t_ms = int(parts[0])
-                except Exception:
-                    continue
-                etype = parts[1]
-                params = []
-                for p in parts[2:]:
-                    # try numeric conversion
-                    try:
-                        if '.' in p:
-                            params.append(float(p))
-                        else:
-                            params.append(int(p))
-                    except Exception:
-                        params.append(p)
-                events.append({'t_ms': t_ms, 'type': etype, 'params': params})
-        # write json sidecar
-        base = os.path.splitext(txt_path)[0]
-        out = base + '.json'
-        meta = {'recorder_version': RECORDER_VERSION, 'timestamp': datetime.utcnow().isoformat() + 'Z'}
-        payload = {'meta': meta, 'events': events}
-        with open(out, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        return out
-    except Exception as e:
-        print('마이그레이션 실패:', e)
-        return None
-
-
-def record_actions(duration_s: float = None, sample_ms: int = 0, meta_extra=None, time_offset_ms: int = 0):
-    global recording, record_events
-    if recording:
-        return None
-    recording = True
-    record_events = []
-    start = time.time()
-    last_move_ms = -9999
-
-    def _now_ms():
-        return int((time.time() - start) * 1000) + time_offset_ms
-
-    def on_move(x, y):
-        nonlocal last_move_ms
-        now = _now_ms()
-        if sample_ms and (now - last_move_ms) < int(sample_ms):
-            return
-        last_move_ms = now
-        record_events.append((now, 'mouse_move', x, y))
-
-    def on_click(x, y, button, pressed):
-        record_events.append((_now_ms(), 'mouse_click', str(button), 'press' if pressed else 'release', x, y))
-
-    def on_scroll(x, y, dx, dy):
-        record_events.append((_now_ms(), 'mouse_scroll', dx, dy, x, y))
-
-    def on_press(k):
-        try:
-            ch = k.char
-        except Exception:
-            ch = str(k)
-        record_events.append((_now_ms(), 'key_down', ch))
-
-    def on_release(k):
-        try:
-            ch = k.char
-        except Exception:
-            ch = str(k)
-        record_events.append((_now_ms(), 'key_up', ch))
-
-    # start listeners
-    m_listener = MouseListener(on_move=on_move, on_click=on_click, on_scroll=on_scroll)
-    k_listener = Listener(on_press=on_press, on_release=on_release)
-    m_listener.start()
-    k_listener.start()
-
-    # wait duration or until stop_event is set
-    if duration_s is None:
-        # record until ESC (global stop_event)
-        while not globals().get('stop_event', threading.Event()).is_set():
-            time.sleep(0.05)
-    else:
-        t_end = time.time() + duration_s
-        while time.time() < t_end and not globals().get('stop_event', threading.Event()).is_set():
-            time.sleep(0.05)
-
-    # stop listeners
-    try:
-        m_listener.stop()
-    except Exception:
-        pass
-    try:
-        k_listener.stop()
-    except Exception:
-        pass
-
-    recording = False
-    # Save file dialog (JSON)
-    saved = _save_events_to_file(record_events, default_name='recording.json', meta_extra=meta_extra)
-    return saved
-
-# worker: duration(s), interval_ms, key
-def worker(duration_s: float, interval_ms: int, key_val):
-    start = time.time()
-    interval_s = interval_ms / 1000.0
-    while not stop_event.is_set():
-        elapsed = time.time() - start
-        if playback_stop_event.is_set():
-            break
-        if elapsed >= duration_s:
-            print(f"지정된 시간({duration_s}초) 경과: 자동 종료")
-            stop_event.set()
-            break
-        try:
-            if isinstance(key_val, str) and len(key_val) == 1:
-                controller.press(key_val)
-                controller.release(key_val)
-            else:
-                controller.press(key_val)
-                controller.release(key_val)
-        except Exception as e:
-            print("키 입력 중 오류:", e)
-        # 다음 입력까지 대기
-        if stop_event.wait(interval_s):
-            break
-    # 작업 종료 후 메시지
-    show_exit_message()
-    # 정리: worker_thread를 해제하고 UI 갱신 콜백 호출
-    global worker_thread, on_worker_finished
-    worker_thread = None
-    if callable(on_worker_finished):
-        try:
-            on_worker_finished()
-        except Exception:
-            pass
-
-# 종료 메시지 (Windows 전용)
-def show_exit_message():
-    if sys.platform == "win32":
-        try:
-            ctypes.windll.user32.MessageBoxW(None, "사용 종료", "알림", 0)
-        except Exception:
-            messagebox.showinfo("알림", "사용 종료")
-    else:
-        messagebox.showinfo("알림", "사용 종료")
-
-
-def _write_test_log(log_data):
-    """Write playback/test results to HTML and CSV, and open the HTML."""
-    log_dir = os.path.join(os.getcwd(), 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    base = f'test_log_{ts}'
-    html_path = os.path.join(log_dir, base + '.html')
-    csv_path = os.path.join(log_dir, base + '.csv')
-
-    started_at = log_data.get('started_at')
-    ended_at = log_data.get('ended_at')
-    duration_s = log_data.get('duration_s', '')
-    status = log_data.get('status', 'unknown')
-    overall = log_data.get('overall_result', 'unknown')
-    script_path = log_data.get('script_path', '')
-    pc_meta = log_data.get('pc_meta', {}) or {}
-    img_results = log_data.get('imgcheck_results', []) or []
-    error_message = log_data.get('error_message', '')
-
-    # CSV output for Excel-friendly view
-    try:
-        with open(csv_path, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.writer(f)
-            writer.writerow(['idx', 'template', 'passed', 'score', 'saved_image', 'message', 'played_at_ms'])
-            for idx, ev in enumerate(img_results, 1):
-                writer.writerow([
-                    idx,
-                    ev.get('input_image', ''),
-                    ev.get('passed', False),
-                    ev.get('score', ''),
-                    ev.get('saved_path', ''),
-                    ev.get('message', ''),
-                    ev.get('elapsed_ms', ''),
-                ])
-    except Exception:
-        pass
-
-    def _fmt_dt(dt_obj):
-        if not dt_obj:
-            return ''
-        try:
-            return dt_obj.strftime('%Y-%m-%d %H:%M:%S')
-        except Exception:
-            return str(dt_obj)
-
-    def _meta_row(label, value):
-        return f'<tr><th>{_escape_html(label)}</th><td>{_escape_html(value)}</td></tr>'
-
-    summary_rows = [
-        _meta_row('스크립트 파일', os.path.basename(script_path) if script_path else ''),
-        _meta_row('상태', status),
-        _meta_row('전체 결과', overall),
-        _meta_row('시작', _fmt_dt(started_at)),
-        _meta_row('종료', _fmt_dt(ended_at)),
-        _meta_row('소요(초)', f"{duration_s:.2f}" if isinstance(duration_s, (int, float)) else duration_s),
-        _meta_row('로그 디렉터리', log_dir),
-    ]
-    target_meta = log_data.get('target_meta', {}) or {}
-    if target_meta:
-        summary_rows.extend([
-            _meta_row('대상 PID', target_meta.get('active_window_pid', '')),
-            _meta_row('대상 프로세스', target_meta.get('active_process_name', '')),
-            _meta_row('대상 창 제목', target_meta.get('active_window_title', '')),
-        ])
-    if error_message:
-        summary_rows.append(_meta_row('에러', error_message))
-
-    pc_rows = []
-    for k in ('host', 'user', 'os', 'python', 'screen_width', 'screen_height'):
-        if k in pc_meta:
-            pc_rows.append(_meta_row(k, pc_meta.get(k, '')))
-
-    img_rows = []
-    for idx, ev in enumerate(img_results, 1):
-        href = _path_to_href(ev.get('saved_path', ''))
-        link_html = f"<a href='{href}'>열기</a>" if href else ''
-        img_rows.append(
-            '<tr>'
-            f'<td>{idx}</td>'
-            f'<td>{_escape_html(ev.get("input_image", ""))}</td>'
-            f'<td>{"PASS" if ev.get("passed") else "FAIL"}</td>'
-            f'<td>{_escape_html(ev.get("score", ""))}</td>'
-            f'<td>{_escape_html(ev.get("message", ""))}</td>'
-            f'<td>{_escape_html(ev.get("elapsed_ms", ""))}</td>'
-            f'<td>{link_html}</td>'
-            '</tr>'
-        )
-
-    html_body = f"""
-<!DOCTYPE html>
-<html lang='ko'>
-<head>
-  <meta charset='utf-8'>
-  <title>테스트 로그</title>
-  <style>
-    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-    h1 {{ margin-bottom: 0; }}
-    .meta-table th {{ text-align: left; width: 140px; padding: 4px; background: #f0f0f0; }}
-    .meta-table td {{ padding: 4px; }}
-    table {{ border-collapse: collapse; width: 100%; margin-top: 12px; }}
-    table, th, td {{ border: 1px solid #ccc; }}
-    th, td {{ padding: 6px; text-align: left; }}
-    .pass {{ color: green; font-weight: bold; }}
-    .fail {{ color: red; font-weight: bold; }}
-  </style>
-</head>
-<body>
-  <h1>테스트 로그</h1>
-  <table class='meta-table'>
-    {''.join(summary_rows)}
-  </table>
-
-  <h2>PC 메타정보</h2>
-  <table class='meta-table'>
-    {''.join(pc_rows) if pc_rows else '<tr><td>정보 없음</td></tr>'}
-  </table>
-
-  <h2>imgcheck 결과</h2>
-  <table>
-    <tr><th>#</th><th>템플릿</th><th>결과</th><th>점수</th><th>메시지</th><th>재생 시점(ms)</th><th>이미지</th></tr>
-    {''.join(img_rows) if img_rows else '<tr><td colspan="7">imgcheck 이벤트 없음</td></tr>'}
-  </table>
-
-  <p>CSV: {os.path.basename(csv_path)}</p>
-</body>
-</html>
-"""
-
-    try:
-        with open(html_path, 'w', encoding='utf-8') as f:
-            f.write(html_body)
-    except Exception:
-        pass
-
-    try:
-        webbrowser.open(_path_to_href(html_path))
-    except Exception:
-        pass
-
-    return html_path, csv_path
+# ============ Worker & Helper Functions ============
+# worker는 workers.simple_macro에서 import됨
 
 # GUI 애플리케이션
 class App:
     def __init__(self, root):
-        self.root = root
-        # 프로그램 이름 (원하는 이름으로 변경하세요)
-        root.title('Please Use Only QA')
+        """
+        App 클래스 초기화
         
-        # 아이콘 설정 (ico 또는 png 파일 경로 지정)
-        # 예시: root.iconbitmap('icon.ico')  # Windows .ico 파일
-        # 또는: root.iconphoto(True, tk.PhotoImage(file='icon.png'))  # PNG 파일
-        # root.iconphoto(True, tk.PhotoImage(file='testicon.png'))
-        
-        root.resizable(True, True)
-
-        pad = 8
-        # Notebook with two tabs
-        notebook = ttk.Notebook(root)
-        tab1 = tk.Frame(notebook)
-        tab2 = tk.Frame(notebook)
-        notebook.add(tab1, text='단순 반복 매크로')
-        notebook.add(tab2, text='녹화 / 스크립트')
-        notebook.pack(fill='both', expand=True)
-
-        frm1 = tk.Frame(tab1, padx=pad, pady=pad)
-        frm1.pack()
-        frm2 = tk.Frame(tab2, padx=pad, pady=pad)
-        frm2.pack()
-        # --- Tab 3: JSON editor ---
-        tab3 = tk.Frame(notebook)
-        notebook.add(tab3, text='JSON 편집기')
-        frm3 = tk.Frame(tab3, padx=pad, pady=pad)
-        frm3.pack(fill='both', expand=True)
-        # allow grid children to stretch when window is resized
-        for c in range(4):
-            frm3.columnconfigure(c, weight=1)
-        frm3.rowconfigure(6, weight=1)  # canvas row
-
-        # Editor control buttons
-        self.btn_editor_load = tk.Button(frm3, text='불러오기', width=10, command=self.load_script_to_editor)
-        self.btn_editor_load.grid(row=0, column=0, pady=(6,0), sticky='w')
-        self.btn_editor_save = tk.Button(frm3, text='저장', width=10, command=self.save_edited_script, state='disabled')
-        self.btn_editor_save.grid(row=0, column=1, pady=(6,0), sticky='w')
-        self.btn_editor_clear = tk.Button(frm3, text='초기화', width=10, command=self._clear_editor)
-        self.btn_editor_clear.grid(row=0, column=2, pady=(6,0), sticky='w')
-        self.btn_editor_help = tk.Button(frm3, text='?', width=3, command=self._show_mouse_help)
-        self.btn_editor_help.grid(row=0, column=3, pady=(6,0), sticky='e')
-
-        # Meta fields
-        tk.Label(frm3, text='메타 (수정 가능)').grid(row=1, column=0, sticky='w', pady=(8,0))
-        tk.Label(frm3, text='recorder_version').grid(row=2, column=0, sticky='w')
-        self.meta_version = tk.Entry(frm3, width=20)
-        self.meta_version.grid(row=2, column=1, sticky='w')
-        tk.Label(frm3, text='timestamp').grid(row=2, column=2, sticky='w')
-        self.meta_timestamp = tk.Entry(frm3, width=30)
-        self.meta_timestamp.grid(row=2, column=3, sticky='w')
-        tk.Label(frm3, text='screen_width').grid(row=3, column=0, sticky='w')
-        self.meta_width = tk.Entry(frm3, width=10)
-        self.meta_width.grid(row=3, column=1, sticky='w')
-        tk.Label(frm3, text='screen_height').grid(row=3, column=2, sticky='w')
-        self.meta_height = tk.Entry(frm3, width=10)
-        self.meta_height.grid(row=3, column=3, sticky='w')
-        tk.Label(frm3, text='(Params는 JSON 배열 형식으로 입력하세요, 예: ["a"])', fg='gray').grid(row=4, column=0, columnspan=4, sticky='w')
-
-        # Events editor - header row
-        self.editor_header = tk.Frame(frm3)
-        self.editor_header.grid(row=5, column=0, columnspan=4, sticky='we', pady=(6,0))
-        tk.Label(self.editor_header, text='시간(ms)', width=12, anchor='w').grid(row=0, column=0, sticky='w')
-        tk.Label(self.editor_header, text='타입', width=20, anchor='w').grid(row=0, column=1, sticky='w')
-        tk.Label(self.editor_header, text='파라미터 (JSON 배열)', width=60, anchor='w').grid(row=0, column=2, sticky='w')
-
-        # Events editor area
-        self.editor_canvas_container = tk.Frame(frm3)
-        self.editor_canvas_container.grid(row=6, column=0, columnspan=4, sticky='nsew')
-        self.editor_canvas = tk.Canvas(self.editor_canvas_container, height=320)
-        self.editor_canvas.pack(side='left', fill='both', expand=True)
-        self.editor_vsb = tk.Scrollbar(self.editor_canvas_container, orient='vertical', command=self.editor_canvas.yview)
-        self.editor_vsb.pack(side='right', fill='y')
-        self.editor_hsb = tk.Scrollbar(frm3, orient='horizontal', command=self.editor_canvas.xview)
-        self.editor_hsb.grid(row=7, column=0, columnspan=4, sticky='we')
-        self.editor_canvas.configure(yscrollcommand=self.editor_vsb.set, xscrollcommand=self.editor_hsb.set)
-        self.editor_inner = tk.Frame(self.editor_canvas)
-        self.editor_inner_window = self.editor_canvas.create_window((0,0), window=self.editor_inner, anchor='nw')
-        self.editor_inner.bind('<Configure>', self._update_editor_scrollregion)
-        self.editor_canvas.bind('<Configure>', self._sync_editor_canvas_width)
-        # mouse wheel scroll for editor
-        self.editor_canvas.bind_all('<MouseWheel>', self._on_mousewheel_editor)
-
-        # editor rows container (rows inside editor_inner)
-        self.editor_rows = []  # list of dicts {t_entry,type_entry,params_entry}
-        self.selected_row_indices = set()  # track multi-selection
-        self.selection_anchor = None
-        self._undo_stack = []  # list of {'state': ..., 'label': ...}
-        self._redo_stack = []
-        self._edit_baseline_state = None
-        self._edit_baseline_label = ''
-        self._edit_baseline_committed = False
-        self._restoring_editor_state = False
-        self.root.bind('<Control-z>', self._undo_editor)
-        self.root.bind('<Control-y>', self._redo_editor)
-        self.btn_add_row = tk.Button(frm3, text='행 추가(끝)', width=12, command=lambda: self._add_editor_row())
-        self.btn_add_row.grid(row=8, column=0, pady=(6,0), sticky='w')
-        self.btn_insert_row = tk.Button(frm3, text='행 삽입(중간)', width=12, command=self._insert_row_after_selected)
-        self.btn_insert_row.grid(row=8, column=1, pady=(6,0), sticky='w')
-        self.btn_time_offset = tk.Button(frm3, text='시간 추가', width=10, command=self._add_time_offset)
-        self.btn_time_offset.grid(row=8, column=2, pady=(6,0), sticky='w')
-        self.btn_delete_row = tk.Button(frm3, text='행 삭제', width=10, command=self._delete_selected_row)
-        self.btn_delete_row.grid(row=8, column=3, pady=(6,0), sticky='w')
-        # Exit button at bottom-right of Tab 3
-        self.btn_exit_tab3 = tk.Button(frm3, text='프로그램 종료', width=14, command=self.exit_app, bg='#ffcccc')
-        self.btn_exit_tab3.grid(row=9, column=3, sticky='e', padx=(0, 0), pady=(10,0))
-        self._menu_hover_bg = '#d9e8ff'
-        self.btn_undo = tk.Button(frm3, text='되돌리기 (Ctrl+Z)', width=16, command=lambda: self._undo_editor())
-        self.btn_undo.grid(row=9, column=0, pady=(4,0), sticky='w')
-        self.btn_undo_menu = tk.Menubutton(frm3, text='▼', width=3, relief='raised')
-        self.btn_undo_menu.grid(row=9, column=1, pady=(4,0), sticky='w')
-        self.undo_menu = tk.Menu(self.btn_undo_menu, tearoff=0)
-        self.btn_undo_menu.configure(menu=self.undo_menu)
-        self.btn_redo = tk.Button(frm3, text='다시하기 (Ctrl+Y)', width=16, command=lambda: self._redo_editor())
-        self.btn_redo.grid(row=9, column=2, pady=(4,0), sticky='w')
-        self.btn_redo_menu = tk.Menubutton(frm3, text='▼', width=3, relief='raised')
-        self.btn_redo_menu.grid(row=9, column=3, pady=(4,0), sticky='w')
-        self.redo_menu = tk.Menu(self.btn_redo_menu, tearoff=0)
-        self.btn_redo_menu.configure(menu=self.redo_menu)
-        # 임시: 요청에 따라 되돌리기/다시하기 UI 비활성화
-        if globals().get('DID_DISABLE_UNDO_REDO_ONCE', False):
-            try:
-                self.btn_undo.config(state='disabled')
-                self.btn_undo_menu.config(state='disabled')
-                self.btn_redo.config(state='disabled')
-                self.btn_redo_menu.config(state='disabled')
-            except Exception:
-                pass
-        self._menu_default_bg = self.undo_menu.cget('background')
-        self._menu_last_hover = {'undo': None, 'redo': None}
-        self.undo_menu.bind('<<MenuSelect>>', lambda e: self._on_history_menu_hover(self.undo_menu, self._undo_stack, 'undo'))
-        self.redo_menu.bind('<<MenuSelect>>', lambda e: self._on_history_menu_hover(self.redo_menu, self._redo_stack, 'redo'))
-        self.undo_menu.bind('<Unmap>', lambda e: self._reset_menu_highlight(self.undo_menu, 'undo'))
-        self.redo_menu.bind('<Unmap>', lambda e: self._reset_menu_highlight(self.redo_menu, 'redo'))
-        self.undo_menu.bind('<Leave>', lambda e: self._reset_menu_highlight(self.undo_menu, 'undo'))
-        self.redo_menu.bind('<Leave>', lambda e: self._reset_menu_highlight(self.redo_menu, 'redo'))
-        self.undo_menu.bind('<ButtonRelease-1>', lambda e: self._reset_menu_highlight(self.undo_menu, 'undo'))
-        self.redo_menu.bind('<ButtonRelease-1>', lambda e: self._reset_menu_highlight(self.redo_menu, 'redo'))
-        self._refresh_history_menus()
-
-        # --- Tab 1: simple auto presser ---
-        # 실행 시간
-        tk.Label(frm1, text='실행 시간 (초)').grid(row=0, column=0, sticky='w')
-        self.entry_duration = tk.Entry(frm1, width=20)
-        self.entry_duration.grid(row=0, column=1)
-
-        # 키 입력 (예: s 또는 enter, space)
-        tk.Label(frm1, text='입력할 키').grid(row=1, column=0, sticky='w')
-        self.entry_key = tk.Entry(frm1, width=20)
-        self.entry_key.grid(row=1, column=1)
-
-        # 간격(ms)
-        tk.Label(frm1, text='간격 (ms)').grid(row=2, column=0, sticky='w')
-        self.entry_interval = tk.Entry(frm1, width=20)
-        self.entry_interval.grid(row=2, column=1)
-
-        # 시작 키(핫키)
-        tk.Label(frm1, text='시작 키 (핫키)').grid(row=3, column=0, sticky='w')
-        self.entry_hotkey = tk.Entry(frm1, width=20)
-        self.entry_hotkey.grid(row=3, column=1)
-        self.entry_hotkey.insert(0, 'F5')
-        self.entry_hotkey.bind('<KeyRelease>', lambda e: self._on_hotkey_change())
-
-        # Buttons: start / stop
-        self.btn_start = tk.Button(frm1, text='시작', width=10, command=self.start)
-        self.btn_start.grid(row=4, column=0, pady=(10,0))
-        self.btn_stop = tk.Button(frm1, text='중지', width=10, command=self.stop, state='disabled')
-        self.btn_stop.grid(row=4, column=1, pady=(10,0))
-        # Exit button at bottom-right
-        self.btn_exit_tab1 = tk.Button(frm1, text='프로그램 종료', width=14, command=self.exit_app, bg='#ffcccc')
-        self.btn_exit_tab1.grid(row=4, column=2, columnspan=1, sticky='e', padx=(50, 0), pady=(10,0))
-
-        # --- Tab 2: recording & playback ---
-        # 재생 핫키
-        tk.Label(frm2, text='재생 핫키').grid(row=0, column=0, sticky='w')
-        self.entry_playhotkey = tk.Entry(frm2, width=20)
-        self.entry_playhotkey.grid(row=0, column=1)
-        self.entry_playhotkey.insert(0, 'F6')
-        self.entry_playhotkey.bind('<KeyRelease>', lambda e: self._on_playhotkey_change())
-        # 녹화 시작 키
-        tk.Label(frm2, text='녹화 시작 키').grid(row=0, column=2, sticky='w')
-        self.entry_record_start = tk.Entry(frm2, width=15)
-        self.entry_record_start.grid(row=0, column=3)
-        self.entry_record_start.insert(0, 'F7')
-        self.entry_record_start.bind('<KeyRelease>', lambda e: self._on_record_start_hotkey_change())
-        # 녹화 종료 키 (기본 ESC)
-        tk.Label(frm2, text='녹화 종료 키').grid(row=1, column=2, sticky='w')
-        self.entry_record_stop = tk.Entry(frm2, width=15)
-        self.entry_record_stop.grid(row=1, column=3)
-        self.entry_record_stop.insert(0, 'ESC')
-        self.entry_record_stop.bind('<KeyRelease>', lambda e: self._on_record_stop_hotkey_change())
-
-        # Buttons: record, start script, stop
-        self.btn_record = tk.Button(frm2, text='녹화', width=10, command=self.start_recording)
-        self.btn_record.grid(row=2, column=0, pady=(10,0))
-        self.btn_append_record = tk.Button(frm2, text='이어서 녹화', width=12, command=self.start_append_recording, state='disabled')
-        self.btn_append_record.grid(row=2, column=1, pady=(10,0))
-        self.btn_start_script = tk.Button(frm2, text='스크립트 시작', width=12, command=self.start_playback, state='disabled')
-        self.btn_start_script.grid(row=2, column=2, pady=(10,0))
-        self.btn_stop_play = tk.Button(frm2, text='재생 중지', width=10, command=lambda: self.play_hotkey_toggle(), state='disabled')
-        self.btn_stop_play.grid(row=2, column=3, pady=(10,0))
-
-        # 스크립트 선택
-        tk.Label(frm2, text='스크립트 파일').grid(row=3, column=0, sticky='w')
-        self.entry_script = tk.Entry(frm2, width=40)
-        self.entry_script.grid(row=3, column=1, columnspan=2, sticky='we')
-        self.entry_script.bind('<KeyRelease>', lambda e: self.validate_inputs())
-        self.btn_browse = tk.Button(frm2, text='선택', width=8, command=self.choose_script)
-        self.btn_browse.grid(row=3, column=3, padx=(6,0))
-
-        # 배속 드롭다운
-        tk.Label(frm2, text='배속 (x)').grid(row=4, column=0, sticky='w')
-        self.speed_var = tk.StringVar(value='1.0')
-        speed_options = ['0.5', '0.8', '1.0', '1.2', '1.5', '2', '3']
-        self.opt_speed = tk.OptionMenu(frm2, self.speed_var, *speed_options, command=lambda _: self.validate_inputs())
-        self.opt_speed.config(width=6)
-        self.opt_speed.grid(row=4, column=1)
-
-        # 반복 횟수
-        tk.Label(frm2, text='반복 횟수').grid(row=4, column=2, sticky='w')
-        self.entry_repeat = tk.Entry(frm2, width=8)
-        self.entry_repeat.grid(row=4, column=3)
-        self.entry_repeat.insert(0, '1')
-
-        # 샘플링 옵션
-        tk.Label(frm2, text='마우스 샘플링(ms, 0=비활성)').grid(row=5, column=0, sticky='w')
-        self.entry_sample_ms = tk.Entry(frm2, width=10)
-        self.entry_sample_ms.grid(row=5, column=1)
-        self.entry_sample_ms.insert(0, '50')
-
-        # 상태 라벨
-        self.status = tk.Label(frm2, text='대기 중', anchor='w')
-        self.status.grid(row=6, column=0, columnspan=4, sticky='we', pady=(8,0))
-
-        # 재생 타이머/배속 표시
-        self.play_timer = tk.Label(frm2, text='재생 시간: 0.0/0.0 초 @1.0x', anchor='w')
-        self.play_timer.grid(row=7, column=0, columnspan=4, sticky='we', pady=(6,0))
-
-        # 입력 변경 시 검증
-        self.entry_duration.bind('<KeyRelease>', lambda e: self.validate_inputs())
-        self.entry_key.bind('<KeyRelease>', lambda e: self.validate_inputs())
-        self.entry_interval.bind('<KeyRelease>', lambda e: self.validate_inputs())
-
-        # Exit button at bottom-right of Tab 2
-        self.btn_exit_tab2 = tk.Button(frm2, text='프로그램 종료', width=14, command=self.exit_app, bg='#ffcccc')
-        self.btn_exit_tab2.grid(row=8, column=3, sticky='e', padx=(0, 0), pady=(10,0))
-
-        # previous hotkey values (for revert on conflict)
-        self._hotkeys_prev = {
-            'HOTKEY': globals().get('HOTKEY', 'f5'),
-            'PLAY_HOTKEY': globals().get('PLAY_HOTKEY', 'f6'),
-            'RECORD_START_HOTKEY': globals().get('RECORD_START_HOTKEY', ''),
-            'RECORD_STOP_HOTKEY': globals().get('RECORD_STOP_HOTKEY', 'esc'),
-        }
-
-        self.validate_inputs()
-        # worker 종료 시 UI 갱신을 위한 콜백 등록
+        모든 UI 설정은 ui.ui_setup 모듈의 setup_ui() 함수에서 처리됩니다.
+        """
         global on_worker_finished
+        self.root = root
+        
+        # UI 설정 (모든 UI 초기화 로직을 ui_setup 모듈로 분리)
+        setup_ui(self)
+        
+        # worker 완료 콜백 설정
         on_worker_finished = self._on_worker_finished
-        # 초기 핫키 설정
-        self._on_hotkey_change()
-        self._on_playhotkey_change()
-        # ensure record hotkey entries are synced
-        self._on_record_start_hotkey_change()
-        self._on_record_stop_hotkey_change()
-        self._on_record_stop_hotkey_change()
-
+#============ hotkey 관련 메서드 ============
     def _on_hotkey_change(self):
         raw = self.entry_hotkey.get().strip()
         parsed = parse_hotkey_str(raw)
@@ -908,6 +255,8 @@ class App:
     def _on_hotkey_change(self):
         raw = self.entry_hotkey.get().strip()
         self._set_hotkey_with_check(self.entry_hotkey, raw, 'HOTKEY', 'HOTKEY')
+
+#============ hotkey 관련 메서드 ============
 
     def start_playback(self):
         # explicit playback start triggered by '녹화시작' 버튼
@@ -1006,6 +355,16 @@ class App:
         self.root.after(0, self._finish_ui_update)
 
     def _finish_ui_update(self):
+        global playback_thread, worker_thread, stop_event, playback_stop_event
+        
+        # 전역 변수 초기화 (중요: globals() 사용하여 실제 전역 변수 수정)
+        globals()['playback_thread'] = None
+        globals()['worker_thread'] = None
+        
+        # 이벤트 플래그 초기화 (다음 실행을 위해)
+        stop_event.clear()
+        playback_stop_event.clear()
+        
         self.status.config(text='대기 중')
         self.btn_stop.config(state='disabled')
         # re-enable record button if not recording
@@ -1019,6 +378,8 @@ class App:
             self.play_timer.config(text='재생 시간: 0.0/0.0 초 @1.0x')
         # 입력값이 유효하면 시작 버튼 및 스크립트 시작 버튼 활성화
         self.validate_inputs()
+        
+        print("[LOG] [_finish_ui_update] playback_thread, worker_thread 정리 및 이벤트 초기화 완료")
 
     def _update_playback_status(self, elapsed_s: float, total_s: float, speed: float):
         # Update timer label
@@ -1063,26 +424,25 @@ class App:
             pass
         return info
 
+    def _recording_meta_defaults(self):
+        """Return meta fields aligned with recording output."""
+        meta = {
+            'recorder_version': RECORDER_VERSION,
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'screen_width': None,
+            'screen_height': None,
+        }
+        try:
+            meta['screen_width'] = self.root.winfo_screenwidth()
+            meta['screen_height'] = self.root.winfo_screenheight()
+        except Exception:
+            pass
+        return meta
+
     def _get_primary_selected_index(self):
         if not self.selected_row_indices:
             return None
         return min(self.selected_row_indices)
-
-    def _show_mouse_help(self):
-        # Show help popup for mouse_click and mouse_scroll parameters
-        help_text = (
-            "mouse_click\n"
-            "  [btn, action, x, y]\n"
-            "  btn: Button.left | Button.right\n"
-            "  action: press | release (클릭은 press와 release 두 이벤트)\n"
-            "  x, y: 화면 좌표\n\n"
-            "mouse_scroll\n"
-            "  [dx, dy, x, y]\n"
-            "  dx: 가로 스크롤 (주로 0)\n"
-            "  dy: 세로 스크롤 (+위/-아래)\n"
-            "  x, y: 스크롤할 위치 좌표"
-        )
-        messagebox.showinfo('마우스 이벤트 도움말', help_text)
 
     # --------------------- JSON Editor Related Methods ---------------------
     def load_script_to_editor(self):
@@ -1212,18 +572,36 @@ class App:
         return 'break'
 
     def _populate_editor_from_payload(self, data):
-        # meta
-        meta = data.get('meta', {}) if isinstance(data, dict) else {}
-        self.meta_version.delete(0, tk.END)
-        self.meta_version.insert(0, meta.get('recorder_version', ''))
-        self.meta_timestamp.delete(0, tk.END)
-        self.meta_timestamp.insert(0, meta.get('timestamp', ''))
-        self.meta_width.delete(0, tk.END)
-        self.meta_width.insert(0, str(meta.get('screen_width', '') or ''))
-        self.meta_height.delete(0, tk.END)
-        self.meta_height.insert(0, str(meta.get('screen_height', '') or ''))
-        # events
+        # reset UI before filling
         self._clear_editor(skip_snapshot=True)
+
+        # meta (merge file meta onto recording defaults)
+        defaults = self._recording_meta_defaults()
+        meta = defaults.copy()
+        if isinstance(data, dict):
+            try:
+                meta.update(data.get('meta', {}) or {})
+            except Exception:
+                pass
+
+        self.meta_version.delete(0, tk.END)
+        self.meta_version.insert(0, meta.get('recorder_version', '') or '')
+        self.meta_timestamp.delete(0, tk.END)
+        self.meta_timestamp.insert(0, meta.get('timestamp', '') or '')
+        self.meta_width.delete(0, tk.END)
+        self.meta_width.insert(0, '' if meta.get('screen_width') is None else str(meta.get('screen_width')))
+        self.meta_height.delete(0, tk.END)
+        self.meta_height.insert(0, '' if meta.get('screen_height') is None else str(meta.get('screen_height')))
+        
+        # active window fields
+        self.meta_active_title.delete(0, tk.END)
+        self.meta_active_title.insert(0, meta.get('active_window_title', '') or '')
+        self.meta_active_pid.delete(0, tk.END)
+        self.meta_active_pid.insert(0, '' if meta.get('active_window_pid') is None else str(meta.get('active_window_pid')))
+        self.meta_active_process.delete(0, tk.END)
+        self.meta_active_process.insert(0, meta.get('active_process_name', '') or '')
+
+        # events
         raw = data.get('events', data) if isinstance(data, dict) else data
         if not isinstance(raw, list):
             return
@@ -1682,6 +1060,9 @@ class App:
         self.meta_timestamp.delete(0, tk.END)
         self.meta_width.delete(0, tk.END)
         self.meta_height.delete(0, tk.END)
+        self.meta_active_title.delete(0, tk.END)
+        self.meta_active_pid.delete(0, tk.END)
+        self.meta_active_process.delete(0, tk.END)
         self.btn_editor_save.config(state='disabled')
 
     def save_edited_script(self):
@@ -1692,16 +1073,57 @@ class App:
             fpath = None
         if not fpath:
             return
-        # gather meta
-        meta = {
-            'recorder_version': self.meta_version.get().strip(),
-            'timestamp': self.meta_timestamp.get().strip(),
-        }
-        try:
-            w = int(self.meta_width.get().strip()) if self.meta_width.get().strip() else None
-            h = int(self.meta_height.get().strip()) if self.meta_height.get().strip() else None
+        # gather meta (align with recording default format)
+        meta = self._recording_meta_defaults()
+        user_version = self.meta_version.get().strip()
+        if user_version:
+            meta['recorder_version'] = user_version
+        user_ts = self.meta_timestamp.get().strip()
+        if user_ts:
+            meta['timestamp'] = user_ts
+        # width/height fall back to defaults if blank or invalid
+        def _parse_int(val):
+            s = val.strip()
+            if not s:
+                return None
+            try:
+                return int(s)
+            except Exception:
+                return None
+        w = _parse_int(self.meta_width.get())
+        h = _parse_int(self.meta_height.get())
+        if w is not None:
             meta['screen_width'] = w
+        if h is not None:
             meta['screen_height'] = h
+        
+        # active window fields
+        active_title = self.meta_active_title.get().strip()
+        if active_title:
+            meta['active_window_title'] = active_title
+        active_pid = _parse_int(self.meta_active_pid.get())
+        if active_pid is not None:
+            meta['active_window_pid'] = active_pid
+        active_process = self.meta_active_process.get().strip()
+        if active_process:
+            meta['active_process_name'] = active_process
+        
+        # reflect resolved meta back to UI
+        try:
+            self.meta_version.delete(0, tk.END)
+            self.meta_version.insert(0, meta.get('recorder_version', ''))
+            self.meta_timestamp.delete(0, tk.END)
+            self.meta_timestamp.insert(0, meta.get('timestamp', ''))
+            self.meta_width.delete(0, tk.END)
+            self.meta_width.insert(0, '' if meta.get('screen_width') is None else str(meta.get('screen_width')))
+            self.meta_height.delete(0, tk.END)
+            self.meta_height.insert(0, '' if meta.get('screen_height') is None else str(meta.get('screen_height')))
+            self.meta_active_title.delete(0, tk.END)
+            self.meta_active_title.insert(0, meta.get('active_window_title', '') or '')
+            self.meta_active_pid.delete(0, tk.END)
+            self.meta_active_pid.insert(0, '' if meta.get('active_window_pid') is None else str(meta.get('active_window_pid')))
+            self.meta_active_process.delete(0, tk.END)
+            self.meta_active_process.insert(0, meta.get('active_process_name', '') or '')
         except Exception:
             pass
         # events
@@ -1844,20 +1266,50 @@ class App:
                         sample_ms = 0
             except Exception:
                 sample_ms = 0
-            saved = record_actions(None, sample_ms, meta_extra=meta_extra)
-            # clear stop_event to reset global stop state after recording
             try:
-                globals()['stop_event'].clear()
-            except Exception:
-                pass
-            if saved:
-                self.status.config(text=f'녹화 저장: {saved}')
-            else:
-                self.status.config(text='녹화 취소')
-            # re-enable record button
-            self.btn_record.config(state='normal')
-            # refresh inputs/buttons
-            self.validate_inputs()
+                events = record_actions(None, sample_ms, meta_extra=meta_extra)
+                err = None
+            except Exception as e:
+                events = None
+                err = e
+
+            def _after_record(evts, error):
+                # clear stop_event to reset global stop state after recording
+                try:
+                    globals()['stop_event'].clear()
+                except Exception:
+                    pass
+
+                if error:
+                    print(f"[LOG] [녹화 에러] {error}")
+                    messagebox.showerror('오류', f'녹화 실패: {error}')
+                    self.status.config(text='녹화 실패')
+                else:
+                    print(f"[LOG] [녹화 완료] 이벤트 수: {len(evts) if evts else 0}")
+                    saved = None
+                    if evts:
+                        try:
+                            from recording.save_events import save_events_to_file
+                            saved = save_events_to_file(evts, default_name='recording.json', meta_extra=meta_extra)
+                            print(f"[LOG] [저장 결과] {saved}")
+                        except Exception as e2:
+                            print(f"[LOG] [저장 실패] {e2}")
+                            messagebox.showerror('오류', f'녹화 저장 실패: {e2}')
+                    else:
+                        print("[LOG] [녹화] 이벤트가 없습니다")
+                    
+                    if saved:
+                        self.status.config(text=f'녹화 저장: {saved}')
+                    else:
+                        self.status.config(text='녹화 취소')
+
+                # re-enable record button
+                self.btn_record.config(state='normal')
+                # refresh inputs/buttons
+                self.validate_inputs()
+
+            # UI 업데이트 및 저장은 메인 스레드에서 실행
+            self.root.after(0, lambda evts=events, error=err: _after_record(evts, error))
         t = threading.Thread(target=_rec, daemon=True)
         t.start()
 
@@ -2052,8 +1504,19 @@ class App:
             return None
 
     def _start_playback_thread(self, fpath, speed=1.0, repeat=1):
-        global playback_thread
-        playback_thread = threading.Thread(target=playback_from_file, args=(fpath, speed, repeat), daemon=True)
+        global playback_thread, controller, mouse_controller, playback_stop_event, on_worker_finished
+        playback_thread = threading.Thread(
+            target=playback_from_file, 
+            args=(fpath, speed, repeat),
+            kwargs={
+                'app': self,
+                'playback_stop_event': playback_stop_event,
+                'controller': controller,
+                'mouse_controller': mouse_controller,
+                'on_worker_finished': on_worker_finished
+            },
+            daemon=True
+        )
         playback_thread.start()
 
     def start(self):
@@ -2089,7 +1552,8 @@ class App:
 
     def hotkey_start(self):
         # 핫키로 호출되는 토글 (main thread에서 호출됨)
-        global playback_thread
+        global playback_thread, worker_thread, stop_event, playback_stop_event
+        
         if worker_thread is not None:
             # 실행 중이면 중지
             self.stop()
@@ -2097,7 +1561,7 @@ class App:
         if playback_thread is not None:
             # 재생 중이면 중지
             playback_stop_event.set()
-            playback_thread = None
+            globals()['playback_thread'] = None
             self.status.config(text='재생 중지')
             self.btn_start.config(state='normal')
             self.btn_stop.config(state='disabled')
@@ -2115,15 +1579,17 @@ class App:
                 return
         except Exception:
             return
-        # if script selected, start playback
-        script_path = self.entry_script.get().strip() if hasattr(self, 'entry_script') else ''
-        if script_path:
-            self.start()
-            return
+        # 스크립트 재생이 선택되었으면 재생 시작, 아니면 단순 매크로 시작
         self.start()
 
     def start(self):
-        global stop_event, listener, worker_thread
+        global stop_event, listener, worker_thread, controller, playback_stop_event, on_worker_finished
+        
+        # 이미 실행 중인 worker가 있으면 중지
+        if worker_thread is not None:
+            messagebox.showwarning('경고', '매크로가 이미 실행 중입니다.')
+            return
+        
         # 입력값 읽기
         try:
             duration_s = float(self.entry_duration.get().strip())
@@ -2136,40 +1602,29 @@ class App:
             messagebox.showerror('오류', '입력값을 확인하세요.')
             return
 
-        # 상태 업데이트
+        # 상태 업데이트 (모든 이벤트 플래그 초기화)
         stop_event.clear()
-        worker_thread = threading.Thread(target=worker, args=(duration_s, interval_ms, key_val), daemon=True)
+        playback_stop_event.clear()
+        
+        # worker 스레드 생성 및 전역 변수 업데이트
+        worker_thread = threading.Thread(
+            target=worker, 
+            args=(duration_s, interval_ms, key_val, controller, stop_event, playback_stop_event, on_worker_finished), 
+            daemon=True
+        )
+        
+        # 전역 변수에 스레드 할당 (중요: globals() 사용)
+        globals()['worker_thread'] = worker_thread
         worker_thread.start()
 
         self.status.config(text='실행 중')
         self.btn_start.config(state='disabled')
         self.btn_stop.config(state='normal')
 
-    def hotkey_start(self):
-        # 핫키로 호출되는 토글 (main thread에서 호출됨)
-        if worker_thread is not None:
-            # 실행 중이면 중지
-            self.stop()
-            return
-        # 입력값 검증 및 시작
-        d = self.entry_duration.get().strip()
-        k = self.entry_key.get().strip()
-        itv = self.entry_interval.get().strip()
-        try:
-            if not d or float(d) <= 0:
-                return
-            if not k:
-                return
-            if not itv or int(itv) <= 0:
-                return
-        except Exception:
-            return
-        self.start()
-
     def stop(self):
         global stop_event, worker_thread
         stop_event.set()
-        worker_thread = None
+        globals()['worker_thread'] = None
         self.status.config(text='중지')
         self.btn_stop.config(state='disabled')
         self.btn_start.config(state='normal' if self.entry_duration.get().strip() and self.entry_key.get().strip() and self.entry_interval.get().strip() else 'disabled')
@@ -2260,304 +1715,7 @@ class App:
         except SystemExit:
             pass
 
-# imgcheck helper function for playback
-def _perform_imgcheck(img_path):
-    """Perform imgcheck during playback: find active window and match template."""
-    result = {'input_image': img_path, 'passed': False}
-    if not os.path.isfile(img_path):
-        msg = f'imgcheck: 파일을 찾을 수 없습니다: {img_path}'
-        result['message'] = msg
-        print(msg)
-        return result
-
-    try:
-        import cv2
-        import numpy as np
-        from imgCheck import capture_window, match_templates, find_windows_for_name
-    except ImportError:
-        msg = 'imgcheck: opencv 또는 imgCheck 모듈이 없습니다.'
-        result['message'] = msg
-        print(msg)
-        return result
-
-    hwnd = None
-    try:
-        import win32gui
-        hwnd = win32gui.GetForegroundWindow()
-        if hwnd:
-            try:
-                result['window_title'] = win32gui.GetWindowText(hwnd)
-            except Exception:
-                pass
-            result['window_hwnd'] = int(hwnd)
-    except Exception:
-        hwnd = None
-
-    if not hwnd:
-        msg = 'imgcheck: 활성 창을 찾을 수 없습니다.'
-        result['message'] = msg
-        print(msg)
-        return result
-
-    screen = capture_window(hwnd)
-    if screen is None:
-        msg = 'imgcheck: 화면 캡처 실패'
-        result['message'] = msg
-        print(msg)
-        return result
-
-    temp_dir = os.path.join(os.getcwd(), 'temp_imgcheck')
-    debug_dir = os.path.join(os.getcwd(), 'debugimg')
-    os.makedirs(temp_dir, exist_ok=True)
-    os.makedirs(debug_dir, exist_ok=True)
-    saved_path = None
-    try:
-        import shutil
-        temp_img = os.path.join(temp_dir, os.path.basename(img_path))
-        shutil.copy(img_path, temp_img)
-        ok, info = match_templates(screen, temp_dir, threshold=0.8)
-        ts = time.strftime('%Y%m%d_%H%M%S')
-
-        if ok:
-            tpl = info.get('template') if isinstance(info, dict) else None
-            score = info.get('score') if isinstance(info, dict) else None
-            loc = info.get('location') if isinstance(info, dict) else None
-            size = info.get('size') if isinstance(info, dict) else None
-            w_t, h_t = size if size else (0, 0)
-            score_text = f"{score:.3f}" if isinstance(score, (int, float)) else str(score)
-            print(f'imgcheck PASS: {os.path.basename(img_path)} 발견 (score={score_text})')
-            vis = screen.copy()
-            if loc and size:
-                top_left = loc
-                bottom_right = (top_left[0] + w_t, top_left[1] + h_t)
-                cv2.rectangle(vis, top_left, bottom_right, (0, 255, 0), 2)
-            vis_fname = os.path.join(debug_dir, f'imgcheck_pass_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png')
-            cv2.imwrite(vis_fname, vis)
-            saved_path = vis_fname
-            result.update({'passed': True, 'score': score, 'saved_path': vis_fname, 'matched_template': tpl, 'message': '템플릿 일치'})
-        else:
-            best_score = None
-            if info and isinstance(info, dict):
-                best_raw = info.get('best_score')
-                if best_raw and isinstance(best_raw, (list, tuple)) and len(best_raw) > 1:
-                    best_score = best_raw[1]
-            msg = f'imgcheck FAIL: {os.path.basename(img_path)} 찾지 못함'
-            print(msg)
-            fail_fname = os.path.join(debug_dir, f'imgcheck_fail_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png')
-            cv2.imwrite(fail_fname, screen)
-            saved_path = fail_fname
-            result.update({'passed': False, 'score': best_score, 'saved_path': fail_fname, 'message': '일치 없음'})
-    except Exception as e:
-        msg = f'imgcheck 실행 중 오류: {e}'
-        result['message'] = msg
-        print(msg)
-    finally:
-        try:
-            shutil.rmtree(temp_dir)
-        except Exception:
-            pass
-
-    result['timestamp'] = datetime.utcnow().isoformat() + 'Z'
-    if saved_path:
-        result['saved_path'] = saved_path
-    return result
-
-def playback_from_file(fpath, speed=1.0, repeat=1):
-    global playback_stop_event, playback_thread, on_worker_finished
-    target_meta = {}
-    app = globals().get('app_instance')
-    try:
-        if app and hasattr(app, '_build_active_window_meta'):
-            target_meta = app._build_active_window_meta()
-    except Exception:
-        target_meta = {}
-    log_data = {
-        'script_path': fpath,
-        'started_at': datetime.now(),
-        'pc_meta': _collect_pc_meta(),
-        'imgcheck_results': [],
-        'status': 'running',
-        'target_meta': target_meta,
-    }
-    events = []
-    try:
-        with open(fpath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            # support two formats: top-level list or {'meta':..., 'events':[...]}
-            if isinstance(data, dict):
-                raw_events = data.get('events', [])
-            else:
-                raw_events = data
-            for ev in raw_events:
-                # each ev is dict {'t_ms':..., 'type':..., 'params':[...]} 
-                t_ms = int(ev.get('t_ms', 0)) if isinstance(ev, dict) else int(ev[0])
-                etype = ev.get('type') if isinstance(ev, dict) else ev[1]
-                params = ev.get('params', []) if isinstance(ev, dict) else ev[2:]
-                events.append((t_ms, etype, params))
-    except Exception as e:
-        print('재생 파일 읽기 실패:', e)
-        log_data.update({'status': 'error', 'error_message': str(e)})
-        log_data['ended_at'] = datetime.now()
-        log_data['duration_s'] = (log_data['ended_at'] - log_data['started_at']).total_seconds()
-        log_data['overall_result'] = 'error'
-        _write_test_log(log_data)
-        playback_thread = None
-        if callable(on_worker_finished):
-            try:
-                on_worker_finished()
-            except Exception:
-                pass
-        return
-    if not events:
-        print('재생할 이벤트가 없습니다.')
-        log_data.update({'status': 'error', 'error_message': '재생할 이벤트가 없습니다.'})
-        log_data['ended_at'] = datetime.now()
-        log_data['duration_s'] = (log_data['ended_at'] - log_data['started_at']).total_seconds()
-        log_data['overall_result'] = 'error'
-        _write_test_log(log_data)
-        playback_thread = None
-        if callable(on_worker_finished):
-            try:
-                on_worker_finished()
-            except Exception:
-                pass
-        return
-    # run playback using absolute scheduling scaled by speed and repeat count
-    playback_stop_event.clear()
-    base_total_ms = events[-1][0]
-    total_s = (base_total_ms / 1000.0) / float(max(1e-9, float(speed))) * max(1, int(repeat))
-    app = globals().get('app_instance')
-    if app:
-        try:
-            app.root.after(0, lambda: app._update_playback_status(0.0, total_s, float(speed)))
-        except Exception:
-            pass
-    start_time = time.time()
-    try:
-        for cycle in range(max(1, int(repeat))):
-            cycle_start = start_time + (cycle * (base_total_ms / 1000.0)) / float(max(1e-9, float(speed)))
-            for t_ms, etype, params in events:
-                if playback_stop_event.is_set():
-                    break
-                target = cycle_start + (t_ms / 1000.0) / float(max(1e-9, float(speed)))
-                sleep_time = target - time.time()
-                # update UI while waiting
-                if sleep_time > 0 and app:
-                    try:
-                        elapsed = time.time() - start_time
-                        app.root.after(0, lambda e=elapsed, t=total_s, s=float(speed): app._update_playback_status(e, t, s))
-                    except Exception:
-                        pass
-                    time.sleep(sleep_time)
-                try:
-                    # suppress global hotkey handling while injecting synthetic input
-                    globals()['SUPPRESS_HOTKEY'] = True
-                    if etype == 'mouse_move':
-                        x, y = params
-                        mouse_controller.position = (int(x), int(y))
-                    elif etype == 'mouse_click':
-                        btn = params[0]
-                        action = params[1]
-                        x = int(params[2])
-                        y = int(params[3])
-                        mouse_controller.position = (x, y)
-                        btn_obj = MouseButton.left if 'left' in str(btn).lower() else MouseButton.right
-                        if action == 'press':
-                            mouse_controller.press(btn_obj)
-                        else:
-                            mouse_controller.release(btn_obj)
-                    elif etype == 'mouse_scroll':
-                        dx = float(params[0])
-                        dy = float(params[1])
-                        x = int(params[2])
-                        y = int(params[3])
-                        mouse_controller.position = (x, y)
-                        mouse_controller.scroll(int(dx), int(dy))
-                    elif etype == 'string':
-                        try:
-                            text = params[0]
-                            controller.type(str(text))
-                        except Exception as e:
-                            print('string 입력 중 오류:', e)
-                    elif etype == 'key_down':
-                        k = params[0]
-                        # special key names like Key.enter
-                        if isinstance(k, str) and k.startswith('Key.'):
-                            keyname = k.split('.',1)[1]
-                            key_obj = getattr(Key, keyname, None)
-                            if key_obj is not None:
-                                controller.press(key_obj)
-                        elif isinstance(k, str) and len(k) == 1:
-                            controller.press(k)
-                        else:
-                            # fallback: press first char
-                            controller.press(str(k)[0])
-                    elif etype == 'key_up':
-                        k = params[0]
-                        if isinstance(k, str) and k.startswith('Key.'):
-                            keyname = k.split('.',1)[1]
-                            key_obj = getattr(Key, keyname, None)
-                            if key_obj is not None:
-                                controller.release(key_obj)
-                        elif isinstance(k, str) and len(k) == 1:
-                            controller.release(k)
-                        else:
-                            controller.release(str(k)[0])
-                    elif etype == 'imgcheck':
-                        img_path = params[0] if params else ''
-                        result = {'input_image': img_path, 'passed': False}
-                        if img_path:
-                            print(f'imgcheck 실행: {img_path}')
-                            result = _perform_imgcheck(img_path) or result
-                        else:
-                            print('imgcheck: 이미지 경로가 없습니다.')
-                            result['message'] = '이미지 경로가 없습니다.'
-                        result['elapsed_ms'] = int((time.time() - start_time) * 1000)
-                        log_data['imgcheck_results'].append(result)
-                except Exception as e:
-                    log_data['status'] = 'error'
-                    log_data['error_message'] = str(e)
-                    print('재생 중 예외:', e)
-                finally:
-                    globals()['SUPPRESS_HOTKEY'] = False
-                # update UI after event
-                if app:
-                    try:
-                        elapsed = time.time() - start_time
-                        app.root.after(0, lambda e=elapsed, t=total_s, s=float(speed): app._update_playback_status(e, t, s))
-                    except Exception:
-                        pass
-            if playback_stop_event.is_set():
-                break
-    finally:
-        log_data['ended_at'] = datetime.now()
-        log_data['duration_s'] = (log_data['ended_at'] - log_data['started_at']).total_seconds()
-        if log_data.get('status') == 'running':
-            log_data['status'] = 'cancelled' if playback_stop_event.is_set() else 'completed'
-        if log_data['status'] == 'completed':
-            if any(not ev.get('passed', False) for ev in log_data.get('imgcheck_results', [])):
-                log_data['overall_result'] = 'fail'
-            else:
-                log_data['overall_result'] = 'pass'
-        elif log_data['status'] == 'cancelled':
-            log_data['overall_result'] = 'cancelled'
-        else:
-            log_data.setdefault('overall_result', 'error')
-
-        html_path, csv_path = _write_test_log(log_data)
-        if app:
-            try:
-                app.root.after(0, lambda p=html_path: app.status.config(text=f'로그 생성: {p}'))
-            except Exception:
-                pass
-        print('재생 종료')
-        # 정리 및 UI 갱신
-        playback_thread = None
-        if callable(on_worker_finished):
-            try:
-                on_worker_finished()
-            except Exception:
-                pass
+# playback_from_file는 playback.playback_engine에서 import됨
 
 
 def main():

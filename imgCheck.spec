@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['script/imgCheck.py'],
+    ['script/imgcheck/imgCheck.py'],
     pathex=[],
     binaries=[],
     datas=[('img', 'img')],

@@ -1,0 +1,261 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-13T05:50:40.805765Z",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "active_window_hwnd": 462720,
+    "active_window_title": "Please Use Only QA",
+    "active_window_pid": 21980,
+    "active_process_name": "python.exe"
+  },
+  "events": [
+    {
+      "t_ms": 134,
+      "type": "mouse_move",
+      "params": [
+        400,
+        365
+      ]
+    },
+    {
+      "t_ms": 184,
+      "type": "mouse_move",
+      "params": [
+        417,
+        395
+      ]
+    },
+    {
+      "t_ms": 234,
+      "type": "mouse_move",
+      "params": [
+        470,
+        475
+      ]
+    },
+    {
+      "t_ms": 284,
+      "type": "mouse_move",
+      "params": [
+        558,
+        570
+      ]
+    },
+    {
+      "t_ms": 336,
+      "type": "mouse_move",
+      "params": [
+        602,
+        608
+      ]
+    },
+    {
+      "t_ms": 419,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        603,
+        608
+      ]
+    },
+    {
+      "t_ms": 504,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        603,
+        608
+      ]
+    },
+    {
+      "t_ms": 511,
+      "type": "mouse_move",
+      "params": [
+        603,
+        608
+      ]
+    },
+    {
+      "t_ms": 561,
+      "type": "mouse_move",
+      "params": [
+        616,
+        583
+      ]
+    },
+    {
+      "t_ms": 611,
+      "type": "mouse_move",
+      "params": [
+        633,
+        544
+      ]
+    },
+    {
+      "t_ms": 665,
+      "type": "mouse_move",
+      "params": [
+        640,
+        533
+      ]
+    },
+    {
+      "t_ms": 679,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        640,
+        533
+      ]
+    },
+    {
+      "t_ms": 752,
+      "type": "mouse_move",
+      "params": [
+        640,
+        533
+      ]
+    },
+    {
+      "t_ms": 753,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        639,
+        533
+      ]
+    },
+    {
+      "t_ms": 803,
+      "type": "mouse_move",
+      "params": [
+        560,
+        536
+      ]
+    },
+    {
+      "t_ms": 853,
+      "type": "mouse_move",
+      "params": [
+        431,
+        538
+      ]
+    },
+    {
+      "t_ms": 913,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        422,
+        534
+      ]
+    },
+    {
+      "t_ms": 920,
+      "type": "mouse_move",
+      "params": [
+        422,
+        534
+      ]
+    },
+    {
+      "t_ms": 1000,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        422,
+        534
+      ]
+    },
+    {
+      "t_ms": 1002,
+      "type": "mouse_move",
+      "params": [
+        422,
+        534
+      ]
+    },
+    {
+      "t_ms": 1052,
+      "type": "mouse_move",
+      "params": [
+        435,
+        545
+      ]
+    },
+    {
+      "t_ms": 1103,
+      "type": "mouse_move",
+      "params": [
+        489,
+        588
+      ]
+    },
+    {
+      "t_ms": 1156,
+      "type": "mouse_move",
+      "params": [
+        530,
+        610
+      ]
+    },
+    {
+      "t_ms": 1204,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        530,
+        610
+      ]
+    },
+    {
+      "t_ms": 1267,
+      "type": "mouse_move",
+      "params": [
+        530,
+        610
+      ]
+    },
+    {
+      "t_ms": 1284,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        529,
+        610
+      ]
+    },
+    {
+      "t_ms": 1321,
+      "type": "mouse_move",
+      "params": [
+        526,
+        606
+      ]
+    },
+    {
+      "t_ms": 1386,
+      "type": "mouse_move",
+      "params": [
+        526,
+        602
+      ]
+    },
+    {
+      "t_ms": 1425,
+      "type": "key_down",
+      "params": [
+        "Key.esc"
+      ]
+    }
+  ]
+}
