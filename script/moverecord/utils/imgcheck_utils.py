@@ -2,7 +2,7 @@
 import os
 import time
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # imgCheck 모듈 경로 설정
@@ -89,7 +89,10 @@ def perform_imgcheck(img_path):
         import shutil
         temp_img = temp_dir / os.path.basename(img_path)
         shutil.copy(img_path, temp_img)
-        ok, info = match_templates(screen, temp_dir, threshold=0.8)
+        
+        # 엄격한 매칭으로 정확한 이미지만 찾기 (threshold=0.85)
+        ok, info = match_templates(screen, temp_dir, threshold=0.85)
+        
         ts = time.strftime('%Y%m%d_%H%M%S')
         
         if ok:
@@ -99,7 +102,9 @@ def perform_imgcheck(img_path):
             size = info.get('size') if isinstance(info, dict) else None
             w_t, h_t = size if size else (0, 0)
             score_text = f"{score:.3f}" if isinstance(score, (int, float)) else str(score)
-            print(f'imgcheck PASS: {os.path.basename(img_path)} 발견 (score={score_text})')
+            
+            # 신뢰도 표시
+            print(f'imgcheck PASS: {os.path.basename(img_path)} 발견 (정확도={score_text})')
             vis = screen.copy()
             if loc and size:
                 top_left = loc
@@ -115,7 +120,10 @@ def perform_imgcheck(img_path):
                 best_raw = info.get('best_score')
                 if best_raw and isinstance(best_raw, (list, tuple)) and len(best_raw) > 1:
                     best_score = best_raw[1]
-            msg = f'imgcheck FAIL: {os.path.basename(img_path)} 찾지 못함'
+            
+            # 실패 메시지에 최고 점수 표시
+            score_info = f" (최고 점수: {best_score:.3f}, 임계값: 0.85)" if best_score else ""
+            msg = f"imgcheck FAIL: {os.path.basename(img_path)} 찾지 못함{score_info}"
             print(msg)
             fail_fname = debug_dir / f'imgcheck_fail_{os.path.splitext(os.path.basename(img_path))[0]}_{ts}.png'
             cv2.imwrite(str(fail_fname), screen)
@@ -132,7 +140,7 @@ def perform_imgcheck(img_path):
         except Exception:
             pass
     
-    result['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    result['timestamp'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     if saved_path:
         result['saved_path'] = saved_path
     return result

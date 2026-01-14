@@ -1,0 +1,350 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-14T15:37:32.287744",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "active_window_title": "Please Use Only QA",
+    "active_window_pid": 12996,
+    "active_process_name": "python.exe"
+  },
+  "events": [
+    {
+      "t_ms": 111,
+      "type": "mouse_move",
+      "params": [
+        1200,
+        418
+      ]
+    },
+    {
+      "t_ms": 116,
+      "type": "key_up",
+      "params": [
+        "Key.f7"
+      ]
+    },
+    {
+      "t_ms": 164,
+      "type": "mouse_move",
+      "params": [
+        1195,
+        418
+      ]
+    },
+    {
+      "t_ms": 214,
+      "type": "mouse_move",
+      "params": [
+        1178,
+        413
+      ]
+    },
+    {
+      "t_ms": 264,
+      "type": "mouse_move",
+      "params": [
+        1149,
+        377
+      ]
+    },
+    {
+      "t_ms": 333,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1133,
+        358
+      ]
+    },
+    {
+      "t_ms": 370,
+      "type": "mouse_move",
+      "params": [
+        1133,
+        357
+      ]
+    },
+    {
+      "t_ms": 432,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1133,
+        357
+      ]
+    },
+    {
+      "t_ms": 440,
+      "type": "string",
+      "params": [
+        "텍스트를 입력하세요"
+      ]
+    },
+    {
+      "t_ms": 452,
+      "type": "mouse_move",
+      "params": [
+        1133,
+        357
+      ]
+    },
+    {
+      "t_ms": 502,
+      "type": "mouse_move",
+      "params": [
+        1104,
+        380
+      ]
+    },
+    {
+      "t_ms": 552,
+      "type": "mouse_move",
+      "params": [
+        982,
+        505
+      ]
+    },
+    {
+      "t_ms": 622,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        939,
+        551
+      ]
+    },
+    {
+      "t_ms": 668,
+      "type": "mouse_move",
+      "params": [
+        939,
+        551
+      ]
+    },
+    {
+      "t_ms": 710,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        939,
+        551
+      ]
+    },
+    {
+      "t_ms": 728,
+      "type": "mouse_move",
+      "params": [
+        939,
+        551
+      ]
+    },
+    {
+      "t_ms": 778,
+      "type": "mouse_move",
+      "params": [
+        1001,
+        560
+      ]
+    },
+    {
+      "t_ms": 828,
+      "type": "mouse_move",
+      "params": [
+        1241,
+        568
+      ]
+    },
+    {
+      "t_ms": 873,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1305,
+        560
+      ]
+    },
+    {
+      "t_ms": 960,
+      "type": "mouse_move",
+      "params": [
+        1305,
+        560
+      ]
+    },
+    {
+      "t_ms": 966,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1304,
+        558
+      ]
+    },
+    {
+      "t_ms": 1010,
+      "type": "mouse_move",
+      "params": [
+        1268,
+        514
+      ]
+    },
+    {
+      "t_ms": 1060,
+      "type": "mouse_move",
+      "params": [
+        1206,
+        414
+      ]
+    },
+    {
+      "t_ms": 1097,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1197,
+        401
+      ]
+    },
+    {
+      "t_ms": 1201,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1197,
+        401
+      ]
+    },
+    {
+      "t_ms": 1353,
+      "type": "mouse_move",
+      "params": [
+        551,
+        360
+      ]
+    },
+    {
+      "t_ms": 1602,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1191,
+        469
+      ]
+    },
+    {
+      "t_ms": 1683,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1191,
+        469
+      ]
+    },
+    {
+      "t_ms": 1885,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1090,
+        549
+      ]
+    },
+    {
+      "t_ms": 1969,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1090,
+        549
+      ]
+    },
+    {
+      "t_ms": 2132,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1447,
+        582
+      ]
+    },
+    {
+      "t_ms": 2229,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1446,
+        582
+      ]
+    },
+    {
+      "t_ms": 2389,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1215,
+        420
+      ]
+    },
+    {
+      "t_ms": 2487,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1215,
+        420
+      ]
+    },
+    {
+      "t_ms": 2686,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        1124,
+        642
+      ]
+    },
+    {
+      "t_ms": 2791,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        1124,
+        642
+      ]
+    },
+    {
+      "t_ms": 2809,
+      "type": "mouse_move",
+      "params": [
+        1124,
+        642
+      ]
+    },
+    {
+      "t_ms": 2900,
+      "type": "string",
+      "params": [
+        "추가테스트"
+      ]
+    }
+  ]
+}

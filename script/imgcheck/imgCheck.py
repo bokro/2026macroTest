@@ -154,17 +154,22 @@ def match_templates(screen: np.ndarray, img_dir: str, threshold: float = 0.9):
 
     best_matches = []
 
-    # 스케일 파라미터
-    scale_min = globals().get('SCALE_MIN', 0.5)
-    scale_max = globals().get('SCALE_MAX', 2.0)
-    scale_steps = globals().get('SCALE_STEPS', 121)
-    upsample = globals().get('UPSAMPLE', False)
+    # 스케일 파라미터 (정확한 매칭을 위한 적절한 범위)
+    scale_min = globals().get('SCALE_MIN', 0.5)  # 적절한 최소 스케일
+    scale_max = globals().get('SCALE_MAX', 2.0)  # 적절한 최대 스케일
+    scale_steps = globals().get('SCALE_STEPS', 201)  # 매우 세밀한 스케일 탐색으로 정확도 향상
+    upsample = globals().get('UPSAMPLE', True)  # 작은 템플릿 업샘플링 유지
     use_edges = globals().get('USE_EDGES', False)
     canny_th1 = globals().get('CANNY_TH1', 50)
     canny_th2 = globals().get('CANNY_TH2', 150)
 
-    # 전처리: 화면 엣지
+    # 전처리: 정확한 매칭을 위한 화면 전처리
     screen_proc = screen_gray
+    
+    # 정확도 향상을 위한 약한 노이즈 제거 (항상 활성화)
+    screen_proc = cv2.GaussianBlur(screen_proc, (3, 3), 0)
+    
+    # 엣지 검출 (선택적)
     if use_edges:
         screen_proc = cv2.Canny(screen_gray, canny_th1, canny_th2)
 

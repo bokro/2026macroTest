@@ -10,6 +10,10 @@ def worker(duration_s: float, interval_ms: int, key_val, controller, stop_event,
     start = time.time()
     interval_s = interval_ms / 1000.0
     
+    # wait() 오버플로우 방지: 시스템 최대값 약 49일 (4,294,967초), 실용적 제한 10일로 설정
+    MAX_WAIT_SECONDS = 864_000.0  # 10일 = 864,000초
+    safe_interval_s = min(max(interval_s, 0.001), MAX_WAIT_SECONDS)
+    
     while not stop_event.is_set():
         elapsed = time.time() - start
         if playback_stop_event.is_set():
@@ -29,8 +33,8 @@ def worker(duration_s: float, interval_ms: int, key_val, controller, stop_event,
         except Exception as e:
             print("키 입력 중 오류:", e)
         
-        # 다음 입력까지 대기
-        if stop_event.wait(interval_s):
+        # 다음 입력까지 대기 (안전한 interval 사용)
+        if stop_event.wait(safe_interval_s):
             break
     
     # 작업 종료 후 메시지

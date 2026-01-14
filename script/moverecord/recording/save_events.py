@@ -2,7 +2,7 @@
 import json
 import os
 import getpass
-from datetime import datetime
+from datetime import datetime, timezone
 from tkinter import filedialog
 from pathlib import Path
 
@@ -55,7 +55,7 @@ def save_events_to_file(events, default_name='recording.json', meta_extra=None):
         from config import RECORDER_VERSION
         meta = {
             'recorder_version': RECORDER_VERSION,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             'screen_width': screen_w,
             'screen_height': screen_h
         }
@@ -107,7 +107,7 @@ def migrate_txt_to_json(txt_path):
         base = os.path.splitext(txt_path)[0]
         out = base + '.json'
         from config import RECORDER_VERSION
-        meta = {'recorder_version': RECORDER_VERSION, 'timestamp': datetime.utcnow().isoformat() + 'Z'}
+        meta = {'recorder_version': RECORDER_VERSION, 'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')}
         payload = {'meta': meta, 'events': events}
         with open(out, 'w', encoding='utf-8') as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
