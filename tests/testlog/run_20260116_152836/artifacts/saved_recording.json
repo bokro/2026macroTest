@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-16T06:28:46.687692Z",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "test_flag": true
+  },
+  "events": [
+    {
+      "t_ms": 0,
+      "type": "mouse_move",
+      "params": [
+        50,
+        50
+      ]
+    },
+    {
+      "t_ms": 10,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        50,
+        50
+      ]
+    },
+    {
+      "t_ms": 20,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        50,
+        50
+      ]
+    },
+    {
+      "t_ms": 30,
+      "type": "string",
+      "params": [
+        "hello"
+      ]
+    }
+  ]
+}

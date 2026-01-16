@@ -48,8 +48,8 @@ from workers.simple_macro import worker
 
 # UI 임포트
 from ui.ui_setup import setup_ui
-from ui.json_editor_mixin import JsonEditorMixin
-from ui.recording_playback_mixin import RecordingPlaybackMixin
+from ui.json_editor import JsonEditor
+from recording.record_play import RecordingPlay
 
 try:
     from pynput.keyboard import Controller, Key, Listener
@@ -155,7 +155,7 @@ def on_press_global(key):
 # 단순 반복 매크로는 workers.simple_macro에서 import됨
 
 # GUI 애플리케이션
-class App(RecordingPlaybackMixin, JsonEditorMixin):
+class App(RecordingPlay, JsonEditor):
     def __init__(self, root):
         """
         App 클래스 초기화
@@ -171,7 +171,7 @@ class App(RecordingPlaybackMixin, JsonEditorMixin):
         # worker 완료 콜백 설정
         on_worker_finished = self._on_worker_finished
 
-    # --------------------- end JSON Editor (moved to ui/json_editor_mixin.py) ---------------------
+    # --------------------- end JSON Editor (moved to ui/json_editor.py) ---------------------
 
     def validate_inputs(self):
         d = self.entry_duration.get().strip()
