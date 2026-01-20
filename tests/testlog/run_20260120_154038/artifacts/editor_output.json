@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "recorder_version": "test",
+    "timestamp": "2026-01-20T06:40:50.454486Z",
+    "screen_width": 1920,
+    "screen_height": 1080
+  },
+  "events": [
+    {
+      "t_ms": 0,
+      "type": "string",
+      "params": [
+        "modified"
+      ]
+    }
+  ]
+}

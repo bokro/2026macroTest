@@ -156,8 +156,8 @@ def match_templates(screen: np.ndarray, img_dir: str, threshold: float = 0.9):
 
     # 스케일 파라미터 (정확한 매칭을 위한 적절한 범위)
     scale_min = globals().get('SCALE_MIN', 0.5)  # 적절한 최소 스케일
-    scale_max = globals().get('SCALE_MAX', 2.0)  # 적절한 최대 스케일
-    scale_steps = globals().get('SCALE_STEPS', 201)  # 매우 세밀한 스케일 탐색으로 정확도 향상
+    scale_max = globals().get('SCALE_MAX', 10.0)  # 최대 10배까지 확대 지원
+    scale_steps = globals().get('SCALE_STEPS', 20)  # 빠른 성능을 위해 20단계로 최적화
     upsample = globals().get('UPSAMPLE', True)  # 작은 템플릿 업샘플링 유지
     use_edges = globals().get('USE_EDGES', False)
     canny_th1 = globals().get('CANNY_TH1', 50)
@@ -224,8 +224,12 @@ def match_templates(screen: np.ndarray, img_dir: str, threshold: float = 0.9):
     top = best_matches[0]
     tpl_path, score, loc, (w_t, h_t) = top
     timing_end = time.time()
+    
+    # 항상 시간 출력
+    print(f"[imgCheck] 총 소요 시간: {timing_end-timing_start:.4f}초 | 그레이스케일 변환: {timing_gray-timing_start:.4f}초 | 템플릿: {os.path.basename(tpl_path)} | 점수: {score:.4f}")
+    
     if globals().get('VERBOSE', False):
-        print(f"DEBUG: match_templates 총 시간={timing_end-timing_start:.4f}초, 변환={timing_gray-timing_start:.4f}초")
+        print(f"DEBUG: 상세 정보 - 매칭 위치: {loc}, 크기: ({w_t}, {h_t})")
     if score >= threshold:
         # 일치 발견
         return True, {'template': tpl_path, 'score': score, 'location': loc, 'size': (w_t, h_t)}

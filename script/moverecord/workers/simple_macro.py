@@ -5,8 +5,13 @@ import ctypes
 from tkinter import messagebox
 
 
-def worker(duration_s: float, interval_ms: int, key_val, controller, stop_event, playback_stop_event, on_finished_callback=None):
-    """단순 반복 키 입력 worker"""
+def worker(duration_s: float, interval_ms: int, key_val, controller, stop_event, playback_stop_event, on_finished_callback=None, repeat_mode='once', mouse_controller=None):
+    """단순 반복 키 입력 worker
+    
+    Args:
+        repeat_mode: 'once' (1회만 실행) 또는 'infinite' (ESC까지 반복)
+        mouse_controller: 마우스 컨트롤러 (마우스 동작 시 필요)
+    """
     start = time.time()
     interval_s = interval_ms / 1000.0
     
@@ -18,13 +23,39 @@ def worker(duration_s: float, interval_ms: int, key_val, controller, stop_event,
         elapsed = time.time() - start
         if playback_stop_event.is_set():
             break
-        if elapsed >= duration_s:
+        
+        # 1회만 실행 모드: 시간 경과 시 종료
+        if repeat_mode == 'once' and elapsed >= duration_s:
             print(f"지정된 시간({duration_s}초) 경과: 자동 종료")
             stop_event.set()
             break
         
+        # 무한 반복 모드: ESC를 누를 때까지 계속 (시간 무시)
+        # stop_event 또는 playback_stop_event가 설정되면 종료
+        
         try:
-            if isinstance(key_val, str) and len(key_val) == 1:
+            # 마우스 동작 처리
+            if isinstance(key_val, dict) and key_val.get('type') == 'mouse':
+                if mouse_controller is None:
+                    print("마우스 컨트롤러가 없습니다.")
+                    break
+                
+                # pynput.mouse에서 Button import
+                from pynput.mouse import Button
+                
+                action = key_val.get('action')
+                if action == 'left_click':
+                    mouse_controller.click(Button.left, 1)
+                elif action == 'right_click':
+                    mouse_controller.click(Button.right, 1)
+                elif action == 'middle_click':
+                    mouse_controller.click(Button.middle, 1)
+                elif action == 'scroll_up':
+                    mouse_controller.scroll(0, 1)
+                elif action == 'scroll_down':
+                    mouse_controller.scroll(0, -1)
+            # 키보드 키 처리
+            elif isinstance(key_val, str) and len(key_val) == 1:
                 controller.press(key_val)
                 controller.release(key_val)
             else:

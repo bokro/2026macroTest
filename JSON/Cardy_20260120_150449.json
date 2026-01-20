@@ -1,0 +1,324 @@
+{
+  "meta": {
+    "recorder_version": "1.0",
+    "timestamp": "2026-01-20T06:04:51.600158Z",
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "active_window_hwnd": 1444854,
+    "active_window_title": "*제목 없음 - Windows 메모장",
+    "active_window_pid": 19104,
+    "active_process_name": "notepad.exe"
+  },
+  "events": [
+    {
+      "t_ms": 63,
+      "type": "mouse_move",
+      "params": [
+        759,
+        493
+      ]
+    },
+    {
+      "t_ms": 76,
+      "type": "key_up",
+      "params": [
+        "Key.f7"
+      ]
+    },
+    {
+      "t_ms": 113,
+      "type": "mouse_move",
+      "params": [
+        736,
+        481
+      ]
+    },
+    {
+      "t_ms": 163,
+      "type": "mouse_move",
+      "params": [
+        662,
+        441
+      ]
+    },
+    {
+      "t_ms": 213,
+      "type": "mouse_move",
+      "params": [
+        553,
+        418
+      ]
+    },
+    {
+      "t_ms": 263,
+      "type": "mouse_move",
+      "params": [
+        512,
+        422
+      ]
+    },
+    {
+      "t_ms": 313,
+      "type": "mouse_move",
+      "params": [
+        498,
+        459
+      ]
+    },
+    {
+      "t_ms": 363,
+      "type": "mouse_move",
+      "params": [
+        489,
+        534
+      ]
+    },
+    {
+      "t_ms": 413,
+      "type": "mouse_move",
+      "params": [
+        519,
+        580
+      ]
+    },
+    {
+      "t_ms": 463,
+      "type": "mouse_move",
+      "params": [
+        560,
+        591
+      ]
+    },
+    {
+      "t_ms": 513,
+      "type": "mouse_move",
+      "params": [
+        645,
+        586
+      ]
+    },
+    {
+      "t_ms": 563,
+      "type": "mouse_move",
+      "params": [
+        716,
+        545
+      ]
+    },
+    {
+      "t_ms": 613,
+      "type": "mouse_move",
+      "params": [
+        733,
+        480
+      ]
+    },
+    {
+      "t_ms": 664,
+      "type": "mouse_move",
+      "params": [
+        717,
+        440
+      ]
+    },
+    {
+      "t_ms": 726,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        710,
+        438
+      ]
+    },
+    {
+      "t_ms": 831,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        710,
+        438
+      ]
+    },
+    {
+      "t_ms": 843,
+      "type": "mouse_move",
+      "params": [
+        710,
+        438
+      ]
+    },
+    {
+      "t_ms": 893,
+      "type": "mouse_move",
+      "params": [
+        748,
+        474
+      ]
+    },
+    {
+      "t_ms": 943,
+      "type": "mouse_move",
+      "params": [
+        909,
+        610
+      ]
+    },
+    {
+      "t_ms": 982,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        942,
+        664
+      ]
+    },
+    {
+      "t_ms": 1035,
+      "type": "mouse_move",
+      "params": [
+        942,
+        666
+      ]
+    },
+    {
+      "t_ms": 1067,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        914,
+        671
+      ]
+    },
+    {
+      "t_ms": 1085,
+      "type": "mouse_move",
+      "params": [
+        839,
+        678
+      ]
+    },
+    {
+      "t_ms": 1135,
+      "type": "mouse_move",
+      "params": [
+        517,
+        671
+      ]
+    },
+    {
+      "t_ms": 1185,
+      "type": "mouse_move",
+      "params": [
+        452,
+        636
+      ]
+    },
+    {
+      "t_ms": 1193,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        455,
+        633
+      ]
+    },
+    {
+      "t_ms": 1235,
+      "type": "mouse_move",
+      "params": [
+        477,
+        614
+      ]
+    },
+    {
+      "t_ms": 1269,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        498,
+        588
+      ]
+    },
+    {
+      "t_ms": 1285,
+      "type": "mouse_move",
+      "params": [
+        515,
+        567
+      ]
+    },
+    {
+      "t_ms": 1335,
+      "type": "mouse_move",
+      "params": [
+        573,
+        482
+      ]
+    },
+    {
+      "t_ms": 1385,
+      "type": "mouse_move",
+      "params": [
+        617,
+        458
+      ]
+    },
+    {
+      "t_ms": 1385,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "press",
+        617,
+        458
+      ]
+    },
+    {
+      "t_ms": 1435,
+      "type": "mouse_move",
+      "params": [
+        665,
+        470
+      ]
+    },
+    {
+      "t_ms": 1455,
+      "type": "mouse_click",
+      "params": [
+        "Button.left",
+        "release",
+        688,
+        476
+      ]
+    },
+    {
+      "t_ms": 1485,
+      "type": "mouse_move",
+      "params": [
+        754,
+        491
+      ]
+    },
+    {
+      "t_ms": 1535,
+      "type": "mouse_move",
+      "params": [
+        832,
+        507
+      ]
+    },
+    {
+      "t_ms": 1604,
+      "type": "key_down",
+      "params": [
+        "Key.esc"
+      ]
+    }
+  ]
+}

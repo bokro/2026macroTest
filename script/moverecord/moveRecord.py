@@ -175,7 +175,6 @@ class App(RecordingPlay, JsonEditor):
 
     def validate_inputs(self):
         d = self.entry_duration.get().strip()
-        k = self.entry_key.get().strip()
         itv = self.entry_interval.get().strip()
         script = getattr(self, 'entry_script', None)
         script_path = script.get().strip() if script else ''
@@ -185,8 +184,15 @@ class App(RecordingPlay, JsonEditor):
                 ok = False
         except Exception:
             ok = False
-        if not k:
-            ok = False
+        
+        # 입력 타입에 따라 다르게 검증
+        input_type = self.input_type_var.get() if hasattr(self, 'input_type_var') else 'keyboard'
+        if input_type == 'keyboard':
+            k = self.entry_key.get().strip()
+            if not k:
+                ok = False
+        # 마우스는 드롭다운에서 선택하므로 항상 유효
+        
         try:
             if not itv or int(itv) <= 0:
                 ok = False
@@ -251,12 +257,17 @@ class App(RecordingPlay, JsonEditor):
         
         # 입력값 검증 및 자동 키 입력 시작
         d = self.entry_duration.get().strip()
-        k = self.entry_key.get().strip()
         itv = self.entry_interval.get().strip()
+        
+        # 입력 타입에 따라 검증
+        input_type = self.input_type_var.get() if hasattr(self, 'input_type_var') else 'keyboard'
+        if input_type == 'keyboard':
+            k = self.entry_key.get().strip()
+            if not k:
+                return
+        
         try:
             if not d or float(d) <= 0:
-                return
-            if not k:
                 return
             if not itv or int(itv) <= 0:
                 return
@@ -265,10 +276,28 @@ class App(RecordingPlay, JsonEditor):
         
         # 자동 키 입력 시작 (스크립트 파일은 무시하고 순수 자동 입력)
         self.start_auto_presser()
+    
+    def _on_input_type_change(self):
+        """입력 타입 변경 시 UI 업데이트"""
+        input_type = self.input_type_var.get()
+
+        # 키보드/마우스 필드 상태 전환
+        if input_type == 'keyboard':
+            if hasattr(self, 'entry_key'):
+                self.entry_key.config(state='normal')
+            if hasattr(self, 'mouse_action_combo'):
+                self.mouse_action_combo.config(state='disabled')
+        else:  # mouse
+            if hasattr(self, 'entry_key'):
+                self.entry_key.config(state='disabled')
+            if hasattr(self, 'mouse_action_combo'):
+                self.mouse_action_combo.config(state='readonly')
+
+        self.validate_inputs()
 
     def start_auto_presser(self):
         """순수 자동 키 입력 시작 (스크립트 재생 제외)"""
-        global stop_event, worker_thread, controller, playback_stop_event, on_worker_finished
+        global stop_event, worker_thread, controller, playback_stop_event, on_worker_finished, mouse_controller
         
         # 이미 실행 중인 worker가 있으면 중지
         if worker_thread is not None:
@@ -279,13 +308,33 @@ class App(RecordingPlay, JsonEditor):
         try:
             duration_s = float(self.entry_duration.get().strip())
             interval_ms = int(self.entry_interval.get().strip())
-            key_val = parse_key(self.entry_key.get().strip())
-            if key_val is None:
-                messagebox.showerror('오류', '유효한 키를 입력하세요.')
-                return
-        except Exception:
-            messagebox.showerror('오류', '입력값을 확인하세요.')
+            
+            # 입력 타입에 따라 key_val 결정
+            input_type = self.input_type_var.get()
+            if input_type == 'keyboard':
+                key_val = parse_key(self.entry_key.get().strip())
+                if key_val is None:
+                    messagebox.showerror('오류', '유효한 키를 입력하세요.')
+                    return
+            else:  # mouse
+                mouse_action_text = self.mouse_action_var.get()
+                mouse_action_map = {
+                    '좌클릭': 'left_click',
+                    '우클릭': 'right_click',
+                    '휠클릭': 'middle_click',
+                    '휠업': 'scroll_up',
+                    '휠다운': 'scroll_down'
+                }
+                action = mouse_action_map.get(mouse_action_text, 'left_click')
+                key_val = {'type': 'mouse', 'action': action}
+                
+        except Exception as e:
+            messagebox.showerror('오류', f'입력값을 확인하세요: {e}')
             return
+
+        # 반복 모드 읽기
+        repeat_mode_text = self.repeat_mode_var.get()
+        repeat_mode = 'once' if repeat_mode_text == '1회만 실행' else 'infinite'
 
         # 상태 업데이트 (모든 이벤트 플래그 초기화)
         stop_event.clear()
@@ -294,7 +343,7 @@ class App(RecordingPlay, JsonEditor):
         # worker 스레드 생성 및 전역 변수 업데이트
         worker_thread = threading.Thread(
             target=worker, 
-            args=(duration_s, interval_ms, key_val, controller, stop_event, playback_stop_event, on_worker_finished), 
+            args=(duration_s, interval_ms, key_val, controller, stop_event, playback_stop_event, on_worker_finished, repeat_mode, mouse_controller), 
             daemon=True
         )
         

@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "recorder_version": "test",
+    "timestamp": "2000-01-01T00:00:00Z",
+    "screen_width": 1920,
+    "screen_height": 1080
+  },
+  "events": [
+    {
+      "t_ms": 0,
+      "type": "string",
+      "params": [
+        "hello"
+      ]
+    },
+    {
+      "t_ms": 100,
+      "type": "key_down",
+      "params": [
+        "Key.enter"
+      ]
+    }
+  ]
+}

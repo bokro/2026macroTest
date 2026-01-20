@@ -219,42 +219,77 @@ def _setup_tab3_editor(app, frm3):
 def _setup_tab1_simple_macro(app, frm1):
     """Tab 1: 단순 반복 매크로 UI 설정"""
     
-    # 실행 시간
-    tk.Label(frm1, text='실행 시간 (초)').grid(row=0, column=0, sticky='w')
-    app.entry_duration = tk.Entry(frm1, width=20)
-    app.entry_duration.grid(row=0, column=1)
+    # 반복 모드
+    tk.Label(frm1, text='반복 모드').grid(row=0, column=0, sticky='w')
+    app.repeat_mode_var = tk.StringVar(value='once')
+    app.repeat_mode_combo = ttk.Combobox(frm1, textvariable=app.repeat_mode_var, width=18, state='readonly')
+    app.repeat_mode_combo['values'] = ('1회만 실행', 'ESC 누를때까지 반복')
+    app.repeat_mode_combo.current(0)
+    app.repeat_mode_combo.grid(row=0, column=1)
     
-    # 키 입력
-    tk.Label(frm1, text='입력할 키').grid(row=1, column=0, sticky='w')
+    # 실행 시간
+    tk.Label(frm1, text='실행 시간 (초)').grid(row=1, column=0, sticky='w')
+    app.entry_duration = tk.Entry(frm1, width=20)
+    app.entry_duration.grid(row=1, column=1)
+    
+    # 입력 타입 선택 (키보드 / 마우스)
+    tk.Label(frm1, text='입력 타입').grid(row=2, column=0, sticky='w')
+    app.input_type_var = tk.StringVar(value='keyboard')
+    
+    input_type_frame = tk.Frame(frm1)
+    input_type_frame.grid(row=2, column=1, sticky='w')
+    
+    app.radio_keyboard = tk.Radiobutton(input_type_frame, text='키보드', variable=app.input_type_var, 
+                                        value='keyboard', command=lambda: app._on_input_type_change())
+    app.radio_keyboard.pack(side='left')
+    
+    app.radio_mouse = tk.Radiobutton(input_type_frame, text='마우스', variable=app.input_type_var, 
+                                      value='mouse', command=lambda: app._on_input_type_change())
+    app.radio_mouse.pack(side='left', padx=(10, 0))
+    
+    # 키보드 입력
+    tk.Label(frm1, text='입력할 키').grid(row=3, column=0, sticky='w')
     app.entry_key = tk.Entry(frm1, width=20)
-    app.entry_key.grid(row=1, column=1)
+    app.entry_key.grid(row=3, column=1)
+    tk.Label(frm1, text='(예: a, enter, space)', fg='gray', font=('', 8)).grid(row=3, column=2, sticky='w', padx=(5, 0))
+    
+    # 마우스 동작 (초기에는 숨김)
+    tk.Label(frm1, text='마우스 동작').grid(row=4, column=0, sticky='w')
+    app.mouse_action_var = tk.StringVar(value='left_click')
+    app.mouse_action_combo = ttk.Combobox(frm1, textvariable=app.mouse_action_var, width=18, state='readonly')
+    app.mouse_action_combo['values'] = ('좌클릭', '우클릭', '휠클릭', '휠업', '휠다운')
+    app.mouse_action_combo.current(0)
+    app.mouse_action_combo.grid(row=4, column=1)
     
     # 간격(ms)
-    tk.Label(frm1, text='간격 (ms)').grid(row=2, column=0, sticky='w')
+    tk.Label(frm1, text='간격 (ms)').grid(row=5, column=0, sticky='w')
     app.entry_interval = tk.Entry(frm1, width=20)
-    app.entry_interval.grid(row=2, column=1)
+    app.entry_interval.grid(row=5, column=1)
     
     # 시작 키(핫키)
-    tk.Label(frm1, text='시작 키 (핫키)').grid(row=3, column=0, sticky='w')
+    tk.Label(frm1, text='시작 키 (핫키)').grid(row=6, column=0, sticky='w')
     app.entry_hotkey = tk.Entry(frm1, width=20)
-    app.entry_hotkey.grid(row=3, column=1)
+    app.entry_hotkey.grid(row=6, column=1)
     app.entry_hotkey.insert(0, 'F5')
     app.entry_hotkey.bind('<KeyRelease>', lambda e: app._on_hotkey_change())
     
     # 시작/중지 버튼
     app.btn_start = tk.Button(frm1, text='시작', width=10, command=app.start)
-    app.btn_start.grid(row=4, column=0, pady=(10,0))
+    app.btn_start.grid(row=7, column=0, pady=(10,0))
     app.btn_stop = tk.Button(frm1, text='중지', width=10, command=app.stop, state='disabled')
-    app.btn_stop.grid(row=4, column=1, pady=(10,0))
+    app.btn_stop.grid(row=7, column=1, pady=(10,0))
     
     # 종료 버튼
     app.btn_exit_tab1 = tk.Button(frm1, text='프로그램 종료', width=14, command=app.exit_app, bg='#ffcccc')
-    app.btn_exit_tab1.grid(row=4, column=2, columnspan=1, sticky='e', padx=(50, 0), pady=(10,0))
+    app.btn_exit_tab1.grid(row=7, column=2, columnspan=1, sticky='e', padx=(50, 0), pady=(10,0))
     
     # 입력 변경 시 검증
     app.entry_duration.bind('<KeyRelease>', lambda e: app.validate_inputs())
     app.entry_key.bind('<KeyRelease>', lambda e: app.validate_inputs())
     app.entry_interval.bind('<KeyRelease>', lambda e: app.validate_inputs())
+
+    # 초기 상태: 키보드 모드일 때 마우스 콤보 비활성화
+    app._on_input_type_change()
 
 
 def _setup_tab2_recording_playback(app, frm2):
