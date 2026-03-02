@@ -3,75 +3,62 @@
 ## 폴더 및 파일 구조
 
 ```
-e:\PythonProject\2026macroTest\script\moverecord/
+e:\PythonProject\2026macroTest\
 │
-├── 📄 moveRecord.py              (메인 진입점 & GUI 애플리케이션)
-├── 📄 moveRecord_backup.py       (원본 백업)
-├── 📄 __init__.py
+├── 📄 run.py                     (진입점, moveRecord 모듈을 __main__으로 래핑)
+
+├── 📄 requirements.txt           (의존성)
+├── 📄 README.md
 │
-├── 📁 config/                    (설정 & 상수)
-│   ├── 📄 __init__.py
-│   └── 📄 constants.py          (전역 상수)
-│       ├── RECORDER_VERSION
-│       ├── HOTKEY, PLAY_HOTKEY
-│       ├── RECORD_START_HOTKEY, RECORD_STOP_HOTKEY
-│       ├── SPECIAL_KEYS
-│       └── DID_DISABLE_UNDO_REDO_ONCE
-│
-├── 📁 utils/                     (유틸리티 함수)
-│   ├── 📄 __init__.py
-│   ├── 📄 key_utils.py          (키 처리)
-│   │   ├── key_to_name()
-│   │   ├── parse_hotkey_str()
-│   │   └── parse_key()
+├── 📁 script/
+│   ├── 📁 config/               (설정 & 상수 - moverecord 공유)
+│   │   ├── 📄 __init__.py
+│   │   └── 📄 constants.py      (전역 상수)
 │   │
-│   ├── 📄 file_utils.py         (파일 & PC 정보)
-│   │   ├── collect_pc_meta()
-│   │   ├── escape_html()
-│   │   ├── path_to_href()
-│   │   └── get_base_dir()
+│   ├── 📁 imgcheck/             (이미지 검증 모듈)
 │   │
-│   ├── 📄 html_utils.py         (HTML 생성)
-│   │   ├── format_datetime()
-│   │   ├── create_meta_row()
-│   │   ├── build_summary_rows()
-│   │   ├── build_pc_meta_rows()
-│   │   ├── build_imgcheck_rows()
-│   │   └── generate_html()
-│   │
-│   ├── 📄 logging.py            (로깅)
-│   │   └── write_test_log()
-│   │
-│   └── 📄 imgcheck_utils.py     (이미지 체크)
-│       └── perform_imgcheck()
+│   └── 📁 moverecord/           (메인 모듈)
+│       ├── 📄 moveRecord.py     (메인 GUI & 진입점)
+│       ├── 📄 __init__.py
+│       │
+│       ├── 📁 utils/            (유틸리티 함수)
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 key_utils.py
+│       │   ├── 📄 file_utils.py
+│       │   ├── 📄 html_utils.py
+│       │   ├── 📄 logging.py
+│       │   └── 📄 imgcheck_utils.py
+│       │
+│       ├── 📁 recording/        (녹화 관련)
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 record_actions.py
+│       │   ├── 📄 save_events.py
+│       │   └── 📄 record_play.py (Mixin)
+│       │
+│       ├── 📁 playback/         (재생 관련)
+│       │   ├── 📄 __init__.py
+│       │   └── 📄 playback_engine.py
+│       │
+│       ├── 📁 ui/               (UI 관련)
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 ui_setup.py
+│       │   ├── 📄 json_editor.py
+│       │   └── 📄 hotkey.py
+│       │
+│       └── 📁 workers/          (워커 스레드)
+│           ├── 📄 __init__.py
+│           └── 📄 simple_macro.py
 │
-├── 📁 recording/                 (녹화 관련)
-│   ├── 📄 __init__.py
-│   ├── 📄 save_events.py        (이벤트 저장)
-│   │   ├── save_events_to_file()
-│   │   └── migrate_txt_to_json()
-│   │
-│   └── 📄 record_actions.py     (녹화 실행)
-│       └── record_actions()
+├── 📁 tests/                    (테스트)
+│   ├── 📄 conftest.py
+│   ├── 📄 test_simple_macro.py
+│   ├── 📄 test_moverecord_e2e.py
+│   ├── 📄 test_record_save_play.py
+│   ├── 📄 test_playback_basic.py
+│   ├── 📄 test_json_editor.py
+│   └── 📁 testlog/
 │
-├── 📁 playback/                  (재생 관련)
-│   ├── 📄 __init__.py
-│   └── 📄 playback_engine.py    (재생 엔진)
-│       ├── playback_from_file()
-│       ├── play_event()
-│       └── _suppress_hotkey (모듈 플래그)
-│
-├── 📁 ui/                        (UI 관련)
-│   ├── 📄 __init__.py
-│   └── 📄 hotkey.py             (글로벌 핫키)
-│       ├── on_press_global()
-│       └── create_global_hotkey_listener()
-│
-└── 📁 workers/                   (워커 스레드)
-    ├── 📄 __init__.py
-    └── 📄 simple_macro.py        (반복 매크로)
-        ├── worker()
-        └── show_exit_message()
+└── 📁 JSON/                     (녹화 파일)
 ```
 
 ---
@@ -283,25 +270,61 @@ on_press_global(key)
 
 ---
 
-## 임포트 구조
+## 임포트 구조 및 경로 관리
+
+### moveRecord.py의 sys.path 설정
+```python
+# 프로젝트 루트 기준 경로
+BASE_DIR = Path(__file__).resolve().parent.parent  # script/
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+# moverecord 패키지 자체도 sys.path에 추가 (utils, config, recording 등 절대 import)
+MOVER_DIR = Path(__file__).resolve().parent  # script/moverecord
+if str(MOVER_DIR) not in sys.path:
+    sys.path.insert(0, str(MOVER_DIR))
+```
+
+이렇게 설정하면 script 디렉터리가 sys.path에 있어서:
+- `from config.constants import ...` (script/config 접근)
+- `from utils.key_utils import ...` (script/moverecord/utils 접근)
+- `from recording.record_actions import ...` (script/moverecord/recording 접근)
+
+모두 정상 작동합니다.
 
 ### moveRecord.py에서의 임포트
+
+*참고*: `run.py`가 이 모듈을 직접 실행할 때와 동일한 환경을 만들기 위해
+`sys.modules['__main__']`을 moveRecord에 연결합니다. 따라서 두 실행 방법은
+기능적으로 동일합니다.
+
 ```python
 # 설정
-from config.constants import HOTKEY, PLAY_HOTKEY, RECORDER_VERSION, ...
+from config.constants import (
+    RECORDER_VERSION, HOTKEY, PLAY_HOTKEY, RECORD_START_HOTKEY,
+    RECORD_STOP_HOTKEY, SUPPRESS_HOTKEY, DID_DISABLE_UNDO_REDO_ONCE, SPECIAL_KEYS
+)
 
 # 유틸리티
-from utils.key_utils import parse_key, parse_hotkey_str, key_to_name
-from utils.file_utils import collect_pc_meta, escape_html
-from utils.imgcheck_utils import perform_imgcheck
-from utils.logging import write_test_log
+from utils.key_utils import key_to_name, parse_hotkey_str, parse_key
+from utils.file_utils import path_to_href
+from utils.html_utils import generate_html
 
-# 기능 모듈
+# 녹화
+from recording.save_events import save_events_to_file, migrate_txt_to_json as _migrate_txt_to_json
 from recording.record_actions import record_actions
-from recording.save_events import save_events_to_file, migrate_txt_to_json
+
+# 재생
 from playback.playback_engine import playback_from_file
-from ui.hotkey import on_press_global, create_listener
-from workers.simple_macro import worker, show_exit_message
+import playback.playback_engine as playback_engine
+
+# Worker
+from workers.simple_macro import worker
+
+# UI
+from ui.ui_setup import setup_ui
+from ui.json_editor import JsonEditor
+from recording.record_play import RecordingPlay
 ```
 
 ---
@@ -402,5 +425,4 @@ new_worker_thread = threading.Thread(target=new_worker, ...)
 ## 참고 문서
 
 - [README.md](README.md) - 프로젝트 개요 및 사용법
-- [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) - 마이그레이션 및 개발 가이드
 - 각 모듈 파일의 docstring 참고

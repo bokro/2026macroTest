@@ -38,9 +38,8 @@ pip install -r requirements.txt
 
 ### 2. 프로그램 실행
 ```bash
-python run.py
+python run.py   # or directly python script/moverecord/moveRecord.py
 ```
-
 ### 3. 기본 사용법
 
 **Tab 1: 반복 매크로**
@@ -75,7 +74,6 @@ script/moverecord/
 ## 📚 문서
 
 - **[ARCHITECTURE.md](script/moverecord/ARCHITECTURE.md)** - 프로젝트 아키텍처 및 구조
-- **[REFACTORING_GUIDE.md](script/moverecord/REFACTORING_GUIDE.md)** - 마이그레이션 가이드 및 API 문서
 
 ## 🎮 핫키
 
@@ -154,7 +152,6 @@ GUI에서 핫키를 변경할 수 있습니다.
 
 더 자세한 정보는 문서를 참고하세요:
 - [ARCHITECTURE.md](script/moverecord/ARCHITECTURE.md) - 폴더 구조 및 모듈 설명
-- [REFACTORING_GUIDE.md](script/moverecord/REFACTORING_GUIDE.md) - API 및 개발 가이드
 
 ## 📄 라이선스
 

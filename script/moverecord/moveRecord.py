@@ -22,6 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 IMGCHECK_DIR = BASE_DIR / 'imgcheck'
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+# moverecord 자체도 sys.path에 추가해서 절대 import utils 등이 동작하게 함
+MOVER_DIR = Path(__file__).resolve().parent
+if str(MOVER_DIR) not in sys.path:
+    sys.path.insert(0, str(MOVER_DIR))
 
 # ============ 모듈 임포트 ============
 # 설정 임포트

@@ -1,5 +1,8 @@
 # Entry point to run the app from project root
-from script.moverecord.moveRecord import main
+
+import sys
+from script.moverecord import moveRecord
 
 if __name__ == '__main__':
-    main()
+    sys.modules['__main__'] = moveRecord
+    moveRecord.main()
